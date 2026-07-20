@@ -1,0 +1,243 @@
+{
+  "name": "codes",
+  "displayName": "Luno Code: AI Coding Agent, Chat & Remote Control",
+  "description": "AI coding agent for VS Code: generates code from natural language, runs terminal commands, and edits multi-file projects behind an approval gate you control. Chat & Agent modes, image/PDF/file attachments, SSH remote execution, and a Telegram mini-app to drive the agent from your phone. Powered by Claude, GPT & Gemini on one flat-rate key.",
+  "version": "1.8.1",
+  "license": "MIT",
+  "publisher": "luno",
+  "author": {
+    "name": "UvenaliyS",
+    "url": "https://github.com/UvenaliyS"
+  },
+  "contributors": [
+    {
+      "name": "UvenaliyS",
+      "url": "https://github.com/UvenaliyS"
+    },
+    {
+      "name": "ivangribach",
+      "url": "https://github.com/ivangribach"
+    }
+  ],
+  "private": true,
+  "icon": "media/icon.png",
+  "galleryBanner": {
+    "color": "#0a0a0c",
+    "theme": "dark"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/UvenaliyS/LunoCode.git"
+  },
+  "homepage": "https://luno.codes",
+  "bugs": {
+    "url": "https://github.com/UvenaliyS/LunoCode/issues"
+  },
+  "pricing": "Trial",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "AI",
+    "Chat",
+    "Programming Languages",
+    "Machine Learning",
+    "Education",
+    "Snippets",
+    "Testing"
+  ],
+  "keywords": [
+    "ai",
+    "agent",
+    "chat",
+    "claude",
+    "anthropic",
+    "gpt",
+    "openai",
+    "gemini",
+    "copilot",
+    "coding assistant",
+    "autocomplete",
+    "refactoring",
+    "terminal",
+    "ssh",
+    "telegram",
+    "luno",
+    "luno code"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "luno-sidebar",
+          "title": "Luno Code",
+          "icon": "media/luno-moon.svg"
+        }
+      ]
+    },
+    "views": {
+      "luno-sidebar": [
+        {
+          "type": "webview",
+          "id": "luno.chatView",
+          "name": "Luno Code",
+          "icon": "media/luno-moon.svg"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "luno.newChat",
+        "title": "New Chat",
+        "category": "Luno",
+        "icon": "$(add)"
+      },
+      {
+        "command": "luno.openInTab",
+        "title": "Open in Tab",
+        "category": "Luno",
+        "icon": "$(split-horizontal)"
+      },
+      {
+        "command": "luno.openInEditorTab",
+        "title": "Open Luno Code",
+        "category": "Luno",
+        "icon": {
+          "light": "media/luno-moon.svg",
+          "dark": "media/luno-moon-white.svg"
+        }
+      },
+      {
+        "command": "luno.openHistory",
+        "title": "History",
+        "category": "Luno",
+        "icon": "$(history)"
+      },
+      {
+        "command": "luno.openSettings",
+        "title": "Settings",
+        "category": "Luno",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "luno.openChat",
+        "title": "Open Chat",
+        "category": "Luno"
+      },
+      {
+        "command": "luno.login",
+        "title": "Link Telegram",
+        "category": "Luno"
+      },
+      {
+        "command": "luno.logout",
+        "title": "Unlink Telegram",
+        "category": "Luno"
+      },
+      {
+        "command": "luno.inlineEdit",
+        "title": "Edit selection (inline)",
+        "category": "Luno",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "luno.showUsage",
+        "title": "Show usage",
+        "category": "Luno"
+      },
+      {
+        "command": "luno.openConfig",
+        "title": "Open Config File (luno.json)",
+        "category": "Luno"
+      },
+      {
+        "command": "luno.exportSettings",
+        "title": "Export Settings",
+        "category": "Luno"
+      },
+      {
+        "command": "luno.importSettings",
+        "title": "Import Settings",
+        "category": "Luno"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "luno.newChat",
+          "when": "view == luno.chatView",
+          "group": "navigation@1"
+        },
+        {
+          "command": "luno.openHistory",
+          "when": "view == luno.chatView",
+          "group": "navigation@2"
+        },
+        {
+          "command": "luno.openInTab",
+          "when": "view == luno.chatView",
+          "group": "navigation@3"
+        },
+        {
+          "command": "luno.openSettings",
+          "when": "view == luno.chatView",
+          "group": "navigation@4"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "luno.openInEditorTab",
+          "group": "navigation@100"
+        },
+        {
+          "command": "luno.inlineEdit",
+          "when": "editorTextFocus",
+          "group": "navigation"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "luno.inlineEdit",
+        "key": "ctrl+k",
+        "mac": "cmd+k",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "luno.newChat",
+        "key": "ctrl+shift+l",
+        "mac": "cmd+shift+l"
+      }
+    ],
+    "configuration": {
+      "title": "Luno Code",
+      "properties": {
+        "luno.gatewayUrl": {
+          "type": "string",
+          "default": "https://api.luno.codes",
+          "markdownDescription": "Legacy bootstrap override for the Luno gateway URL. Settings now live in luno.json (Luno: Open Config File); this key is only read on first run for migration."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.mjs --production",
+    "dev": "node esbuild.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "vscode:prepublish": "npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/ssh2": "^1.15.5",
+    "@types/vscode": "^1.90.0",
+    "@types/ws": "^8.18.1",
+    "esbuild": "^0.23.0",
+    "typescript": "^5.5.0"
+  },
+  "dependencies": {
+    "ssh2": "^1.17.0",
+    "ws": "^8.21.1"
+  }
+}

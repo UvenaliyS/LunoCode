@@ -1,0 +1,1955 @@
+/* ───────────────────────────────────────────────────────────────────────────
+   Settings v2 — styles for the rebuilt Settings screen (settings/*.tsx).
+   Only additive: reuses the design tokens + settings-* classes from styles.css
+   (cards, toggles, selects, sliders, top bar). Everything new is s2-*.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* The settings screen is its own container so the rail can collapse based on
+   the webview's width (sidebar vs editor tab), not the window's. */
+.s2-app {
+  container-type: inline-size;
+}
+
+.s2-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.s2-spin {
+  animation: s2-spin 0.8s linear infinite;
+}
+
+@keyframes s2-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Transient toast (configTransfer results) ────────────────────────────── */
+
+.s2-toast {
+  position: fixed;
+  top: 52px;
+  right: 16px;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 340px;
+  padding: 8px 12px;
+  font-size: 11.5px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  animation: fadeIn 0.15s ease-out;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+}
+
+.s2-toast.ok {
+  background: #0d1512;
+  color: var(--success-rgb);
+  border-color: rgba(34, 197, 94, 0.35);
+}
+
+.s2-toast.err {
+  background: #171012;
+  color: var(--danger-rgb);
+  border-color: rgba(248, 113, 113, 0.35);
+}
+
+/* ── Left tab rail ───────────────────────────────────────────────────────── */
+
+/* Mirrors the luno.codes dashboard sidebar 1:1 (DashboardClient.tsx <aside>):
+   w-[255px] · bg-[#0a0a0a] · border-r border-zinc-800/50 · nav p-2 space-y-1;
+   buttons: p-2 gap-2.5 text-xs font-medium rounded-md, white text, active &
+   hover bg #171717. No group labels / logo — just the flat item list. */
+.s2-rail {
+  width: 255px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px; /* space-y-1 */
+  padding: 8px; /* p-2 */
+  border-right: 1px solid rgba(39, 39, 42, 0.5); /* border-zinc-800/50 */
+  background: #0a0a0a;
+  overflow-y: auto;
+}
+
+.s2-rail .settings-tab-btn {
+  padding: 8px; /* p-2 */
+  gap: 10px; /* gap-2.5 */
+  font-size: 12px; /* text-xs */
+  line-height: 16px;
+  font-weight: 500; /* font-medium */
+  border-radius: 6px; /* rounded-md */
+  color: #fff;
+  background: none;
+  box-shadow: none;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.s2-rail .settings-tab-btn:hover {
+  color: #fff;
+  background: #171717;
+}
+
+.s2-rail .settings-tab-btn.active {
+  color: #fff;
+  background: #171717;
+  box-shadow: none;
+  font-weight: 500;
+}
+
+/* Site badge slot is ml-auto — the linked-dot rides the same position. */
+.s2-rail .settings-tab-btn .tab-indicator {
+  position: static;
+  margin-left: auto;
+}
+
+/* Narrow webview (chat sidebar): icons only. */
+@container (max-width: 520px) {
+  .s2-rail {
+    width: 46px;
+    padding: 12px 4px;
+    align-items: center;
+  }
+
+  .s2-rail .settings-tab-btn {
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    padding: 8px;
+  }
+
+  .s2-rail .settings-tab-btn span {
+    display: none;
+  }
+
+  .s2-rail .settings-tab-btn .tab-indicator {
+    display: block;
+    right: 3px;
+    top: 3px;
+  }
+
+  /* Top-bar action labels also collapse to icons. */
+  .s2-app .settings-action-btn span {
+    display: none;
+  }
+
+  .s2-app .settings-action-btn {
+    padding: 0 6px;
+    width: 26px;
+    justify-content: center;
+  }
+}
+
+/* ── Card header extras ──────────────────────────────────────────────────── */
+
+.s2-card-ic {
+  display: inline-flex;
+}
+
+.s2-card-badge {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── Status badge ────────────────────────────────────────────────────────── */
+
+.s2-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  color: var(--fg-muted);
+  background: var(--surface-3);
+  white-space: nowrap;
+}
+
+.s2-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.s2-badge-dot.pulse {
+  animation: led-glow 2s infinite ease-in-out;
+}
+
+.s2-badge.ok {
+  color: var(--success-rgb);
+  background: var(--success-soft);
+  border-color: rgba(34, 197, 94, 0.25);
+}
+
+.s2-badge.err {
+  color: var(--danger-rgb);
+  background: rgba(248, 113, 113, 0.08);
+  border-color: rgba(248, 113, 113, 0.25);
+}
+
+.s2-badge.warn {
+  color: var(--warning-rgb);
+  background: rgba(251, 191, 36, 0.08);
+  border-color: rgba(251, 191, 36, 0.25);
+}
+
+/* ── Generic rows (label left, control right) ────────────────────────────── */
+
+.s2-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+}
+
+.s2-row-control {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 55%;
+}
+
+/* Doubled class: settings2.css is bundled before styles.css (main.tsx import
+   order), so a bare .s2-select would lose the width tie to .settings-select. */
+.settings-select.s2-select {
+  width: auto;
+  min-width: 150px;
+  max-width: 260px;
+}
+
+.s2-input {
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  width: 230px;
+  max-width: 100%;
+  outline: none;
+  transition: border-color 0.12s ease;
+}
+
+.s2-input:focus {
+  border-color: var(--accent-rgb);
+}
+
+.s2-disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/* Rows stack on narrow widths so controls never overflow. */
+@container (max-width: 460px) {
+  .s2-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .s2-row-control {
+    max-width: none;
+  }
+
+  .s2-row-control .s2-select,
+  .s2-row-control .s2-input {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+/* ── Item lists (providers, SSH servers, models) ─────────────────────────── */
+
+.s2-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.s2-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.12s ease;
+}
+
+.s2-item:hover {
+  border-color: var(--border);
+}
+
+.s2-item-ic {
+  flex-shrink: 0;
+  display: inline-flex;
+  color: var(--fg-dim);
+}
+
+.s2-item-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.s2-item-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--fg);
+  min-width: 0;
+}
+
+.s2-item-title > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.s2-item-sub {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.s2-item-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.s2-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  color: var(--fg-muted);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.s2-icon-btn:hover {
+  color: var(--fg);
+  border-color: var(--border);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.s2-icon-btn.danger:hover {
+  color: var(--danger-rgb);
+  border-color: rgba(248, 113, 113, 0.4);
+  background: rgba(248, 113, 113, 0.06);
+}
+
+.s2-icon-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Small mono chip (wire format, sonnet-eq, default marker…). */
+.s2-chip {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--fg-dim);
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  white-space: nowrap;
+}
+
+.s2-chip.accent {
+  color: var(--accent-rgb);
+  background: var(--accent-soft);
+  border-color: rgba(220, 38, 38, 0.3);
+}
+
+/* Compact select used inside item rows (model format override). */
+.s2-mini-select {
+  background: var(--bg);
+  color: var(--fg-dim);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 3px 6px;
+  font-size: 10.5px;
+  font-family: var(--font-mono);
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.12s ease;
+}
+
+.s2-mini-select:focus {
+  border-color: var(--accent-rgb);
+}
+
+/* Brand group label in the model library. */
+.s2-brand-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 4px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+}
+
+.s2-brand-head:first-child {
+  margin-top: 0;
+}
+
+/* ── Inline add/edit form (providers, SSH servers) ───────────────────────── */
+
+.s2-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background: var(--surface-2);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  animation: fadeIn 0.15s ease-out;
+}
+
+.s2-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.s2-form .settings-field label {
+  font-size: 11.5px;
+}
+
+.s2-form .s2-input,
+.s2-form .settings-select {
+  width: 100%;
+  max-width: none;
+}
+
+.s2-form-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 2px;
+}
+
+/* ── Usage bars (Account tab) ────────────────────────────────────────────── */
+
+.s2-usage-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+}
+
+.s2-usage-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.s2-usage-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.s2-usage-nums {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+
+.s2-usage-bar {
+  height: 5px;
+  background: var(--border-soft);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.s2-usage-fill {
+  height: 100%;
+  width: 100%;
+  background: var(--success-rgb);
+  border-radius: 3px;
+  transform-origin: left center;
+  /* scaleX set inline from the usage ratio; transform stays compositor-only. */
+  transition: transform 0.3s ease;
+}
+
+.s2-usage-fill.warn {
+  background: var(--warning-rgb);
+}
+
+.s2-usage-fill.crit {
+  background: var(--accent-rgb);
+}
+
+.s2-usage-reset {
+  font-size: 10.5px;
+  font-family: var(--font-mono);
+  color: var(--fg-muted);
+}
+
+/* ── Luno App tab ────────────────────────────────────────────────────────── */
+
+.s2-qr-wrap {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px;
+  background: var(--surface-2);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  animation: fadeIn 0.15s ease-out;
+  flex-wrap: wrap;
+}
+
+.s2-qr-box {
+  background: #fff;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  flex-shrink: 0;
+}
+
+.s2-qr-side {
+  flex: 1;
+  min-width: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.s2-qr-side h5 {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.s2-qr-side p {
+  margin: 0;
+  font-size: 11px;
+  color: var(--fg-muted);
+  line-height: 1.4;
+}
+
+/* The "open bot" link is an <a> wearing the outline-button class. */
+.s2-qr-side a.settings-btn-outline {
+  align-self: flex-start;
+  text-decoration: none;
+}
+
+.s2-link-code {
+  align-self: flex-start;
+  padding: 4px 10px;
+  font-size: 16px;
+  font-family: var(--font-brand);
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.s2-waiting {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--fg-muted);
+}
+
+/* ── About tab key/value rows ────────────────────────────────────────────── */
+
+.s2-kv {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+}
+
+.s2-kv-key {
+  color: var(--fg-dim);
+}
+
+.s2-kv-val {
+  font-family: var(--font-mono);
+  color: var(--fg);
+}
+
+.s2-kv a {
+  color: var(--accent-rgb);
+  text-decoration: none;
+}
+
+.s2-kv a:hover {
+  text-decoration: underline;
+}
+
+/* ── Account tab — 1:1 with the site dashboard (globals.css .hk-box: a 2px
+   inset zinc-700 ring that flips to red-600 on hover, SHARP corners, no bg). */
+
+.s2a-box,
+.s2a-metric,
+.s2a-profile-card,
+.s2a-signedout {
+  border-radius: 0;
+  box-shadow: inset 0 0 0 2px #3f3f46; /* ring-2 zinc-700 (--accent-border) */
+  transition: box-shadow 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+}
+
+.s2a-box:hover,
+.s2a-metric:hover {
+  box-shadow: inset 0 0 0 2px #dc2626; /* hk-box-hover → red-600 */
+}
+
+.s2a-box {
+  padding: 20px; /* p-5 */
+  margin-bottom: 20px; /* the overview column's gap-5 */
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.s2a-box-title {
+  margin: 0;
+  font-size: 12px; /* text-xs */
+  font-weight: 700;
+  letter-spacing: 0.05em; /* tracking-wider */
+  text-transform: uppercase;
+  color: #fff;
+}
+
+/* Shared 10px dim uppercase label (the site's text-[10px] zinc-500). */
+.s2a-microlabel {
+  margin: 0;
+  font-size: 10px;
+  color: #71717a; /* zinc-500 */
+  text-transform: uppercase;
+  letter-spacing: 0.05em; /* tracking-wider */
+}
+
+/* ── Metric cards — overview's auto-fit grid ── */
+.s2a-metrics {
+  display: grid;
+  gap: 12px; /* gap-3 */
+  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+  margin-bottom: 20px;
+}
+.s2a-metric {
+  padding: 16px; /* p-4 */
+  display: flex;
+  flex-direction: column;
+  gap: 8px; /* space-y-2 */
+  min-width: 0;
+  container-type: inline-size;
+}
+.s2a-metric-label {
+  margin: 0;
+  font-size: 9px;
+  color: #71717a;
+  text-transform: uppercase;
+  letter-spacing: 0.025em; /* tracking-wide */
+  font-weight: 700;
+  line-height: 1.25; /* leading-tight */
+}
+.s2a-metric-value {
+  margin: 0;
+  font-weight: 900;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25;
+  /* Fluid via container query: 1cqi = 1% of the card's own width. */
+  font-size: clamp(0.85rem, 9cqi, 1.375rem);
+}
+.s2a-metric-num {
+  white-space: nowrap;
+}
+.s2a-metric-limit {
+  white-space: nowrap;
+  font-weight: 400;
+  color: #71717a;
+  font-size: clamp(0.6rem, 4.5cqi, 0.75rem);
+}
+
+/* ── Limit bars — the site's ProgressBar/ProgressBarPercent ── */
+.s2a-limits {
+  gap: 20px; /* space-y-5 */
+}
+.s2a-limit {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.s2a-limit-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 12px;
+}
+.s2a-limit-label {
+  color: #71717a; /* zinc-500 */
+  text-transform: uppercase;
+}
+.s2a-limit-value {
+  color: #fff;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.s2a-track {
+  height: 14px;
+  background: #18181b; /* zinc-900 */
+  border-radius: 0;
+  overflow: hidden;
+}
+.s2a-fill {
+  height: 100%;
+  width: 100%;
+  background: #dc2626; /* red-600 */
+  /* Fill level rides transform (scaleX set inline) — compositor-only, no
+     layout work on usage refreshes. */
+  transform-origin: left;
+  transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.s2a-fill.warn {
+  background: #eab308; /* yellow-500 */
+}
+.s2a-fill.crit {
+  background: #ef4444; /* red-500 */
+}
+.s2a-total-requests {
+  margin: 0;
+  padding-top: 4px; /* pt-1 */
+  font-size: 12px;
+  color: #71717a;
+  text-transform: uppercase;
+}
+.s2a-total-requests span {
+  color: #fff;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Profile — the site Settings tab's cohesive card ── */
+.s2a-profile-card {
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.s2a-profile-hero {
+  display: flex;
+  align-items: center;
+  gap: 20px; /* gap-5 */
+  padding: 24px; /* sm:p-6 */
+  background: linear-gradient(to right, rgba(24, 24, 27, 0.5), transparent); /* from-zinc-900/50 */
+  border-bottom: 1px solid rgba(39, 39, 42, 0.6); /* zinc-800/60 */
+}
+.s2a-profile-avatar {
+  flex-shrink: 0;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.1), /* ring-1 white/10 */
+    0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -4px rgba(0, 0, 0, 0.1); /* shadow-lg */
+}
+.s2a-profile-id {
+  min-width: 0;
+  flex: 1;
+}
+.s2a-profile-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* gap-2 */
+}
+.s2a-profile-name {
+  margin: 0;
+  font-size: 18px; /* text-lg */
+  font-weight: 900;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.s2a-plan-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #fff;
+  background: #dc2626; /* red-600 */
+  padding: 2px 8px; /* px-2 py-0.5 */
+}
+.s2a-profile-email {
+  margin: 4px 0 0; /* mt-1 */
+  font-size: 14px; /* text-sm */
+  font-weight: 700;
+  color: #d4d4d8; /* zinc-300 */
+  font-family: var(--font-mono);
+  letter-spacing: -0.025em; /* tracking-tight */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.s2a-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+.s2a-profile-cell {
+  padding: 16px; /* p-4 */
+  display: flex;
+  flex-direction: column;
+  gap: 4px; /* space-y-1 */
+  min-width: 0;
+}
+.s2a-profile-cell + .s2a-profile-cell {
+  border-left: 1px solid rgba(39, 39, 42, 0.6); /* divide-x zinc-800/60 */
+}
+.s2a-cell-value {
+  margin: 0;
+  font-size: 14px; /* text-sm */
+  font-weight: 500;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.s2a-cell-value.mono {
+  font-size: 13px;
+  font-family: var(--font-mono);
+  letter-spacing: -0.025em;
+}
+.s2a-cell-value.plan {
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+/* Narrow webview: stack the profile grid like the site's grid-cols-2→1. */
+@container (max-width: 520px) {
+  .s2a-profile-grid {
+    grid-template-columns: 1fr;
+  }
+  .s2a-profile-cell + .s2a-profile-cell {
+    border-left: none;
+    border-top: 1px solid rgba(39, 39, 42, 0.6);
+  }
+}
+
+/* ── Signed-out state — a centered invite card, site-styled ── */
+.s2a-signedout {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  padding: 56px 32px;
+  background: linear-gradient(to bottom, rgba(24, 24, 27, 0.5), transparent); /* zinc-900/50 */
+}
+.s2a-signedout-glow {
+  position: absolute;
+  top: -64px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 240px;
+  height: 160px;
+  background: rgba(220, 38, 38, 0.06); /* red-600/6 */
+  filter: blur(64px);
+  pointer-events: none;
+}
+.s2a-signedout-tile {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 12px;
+  background: rgba(69, 10, 10, 0.4); /* red-950/40 */
+  box-shadow: inset 0 0 0 1px rgba(127, 29, 29, 0.5); /* ring-red-900/50 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #dc2626;
+}
+.s2a-signedout-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 900;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.s2a-signedout-desc {
+  margin: 0;
+  max-width: 340px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #71717a; /* zinc-500 */
+}
+/* The site's red CTA (hk-btn shape): compact, uppercase, never stretched. */
+.s2a-signedout .s2a-btn-primary {
+  margin-top: 18px;
+  align-self: center;
+  width: auto;
+  padding: 10px 20px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.s2a-logout {
+  flex-shrink: 0;
+  display: inline-flex;
+  padding: 4px;
+  border: none;
+  background: none;
+  color: #fff;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.s2a-logout:hover {
+  color: var(--accent-rgb);
+}
+
+/* ── Site-recolored tabs (Language, Notifications) — same section/card layout,
+   repainted to the site palette (hk-box: 2px inset zinc-700 ring → red-600 on
+   hover, sharp corners). Scope by tab root class; extend the list as more tabs
+   move to the site look. ─────────────────────────────────────────────────── */
+.s2-lang .settings-group-card,
+.s2-notif .settings-group-card,
+.s2-ssh .settings-group-card,
+.s2-about .settings-group-card,
+.s2-gen .settings-group-card,
+.s2-models .settings-group-card,
+.s2-autoapprove .settings-group-card,
+.s2-display .settings-group-card,
+.s2-context .settings-group-card,
+.s2-agent .settings-group-card,
+.s2-luno .settings-group-card {
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 20px; /* p-5 */
+  box-shadow: inset 0 0 0 2px #3f3f46; /* ring-2 zinc-700 */
+  transition: box-shadow 0.15s ease;
+}
+.s2-lang .settings-group-card:hover,
+.s2-notif .settings-group-card:hover,
+.s2-ssh .settings-group-card:hover,
+.s2-about .settings-group-card:hover,
+.s2-gen .settings-group-card:hover,
+.s2-models .settings-group-card:hover,
+.s2-autoapprove .settings-group-card:hover,
+.s2-display .settings-group-card:hover,
+.s2-context .settings-group-card:hover,
+.s2-agent .settings-group-card:hover,
+.s2-luno .settings-group-card:hover {
+  border: none;
+  box-shadow: inset 0 0 0 2px #dc2626; /* hk-box-hover → red-600 */
+}
+.s2-lang .card-header-ic,
+.s2-notif .card-header-ic,
+.s2-ssh .card-header-ic,
+.s2-about .card-header-ic,
+.s2-gen .card-header-ic,
+.s2-models .card-header-ic,
+.s2-autoapprove .card-header-ic,
+.s2-display .card-header-ic,
+.s2-context .card-header-ic,
+.s2-agent .card-header-ic,
+.s2-luno .card-header-ic {
+  color: #dc2626; /* red-600, flat — the site has no glow */
+  filter: none;
+}
+.s2-lang .card-header h4,
+.s2-notif .card-header h4,
+.s2-ssh .card-header h4,
+.s2-about .card-header h4,
+.s2-gen .card-header h4,
+.s2-models .card-header h4,
+.s2-autoapprove .card-header h4,
+.s2-display .card-header h4,
+.s2-context .card-header h4,
+.s2-agent .card-header h4,
+.s2-luno .card-header h4 {
+  color: #fff;
+  letter-spacing: 0.05em; /* tracking-wider */
+}
+.s2-lang .toggle-label-text,
+.s2-notif .toggle-label-text,
+.s2-ssh .toggle-label-text,
+.s2-gen .toggle-label-text,
+.s2-autoapprove .toggle-label-text,
+.s2-display .toggle-label-text,
+.s2-context .toggle-label-text,
+.s2-agent .toggle-label-text,
+.s2-luno .toggle-label-text {
+  color: #fff;
+}
+.s2-lang .toggle-hint-text,
+.s2-lang .field-hint,
+.s2-notif .toggle-hint-text,
+.s2-notif .field-hint,
+.s2-ssh .toggle-hint-text,
+.s2-ssh .field-hint,
+.s2-ssh .field-hint-text,
+.s2-ssh .group-card-desc,
+.s2-about .group-card-desc,
+.s2-gen .toggle-hint-text,
+.s2-gen .field-hint-text,
+.s2-gen .group-card-desc,
+.s2-models .group-card-desc,
+.s2-models .field-hint-text,
+.s2-autoapprove .group-card-desc,
+.s2-autoapprove .field-hint-text,
+.s2-display .group-card-desc,
+.s2-context .group-card-desc,
+.s2-context .field-hint-text,
+.s2-agent .group-card-desc,
+.s2-agent .toggle-hint-text,
+.s2-luno .group-card-desc,
+.s2-luno .toggle-hint-text {
+  color: #71717a; /* zinc-500 */
+}
+.s2-lang .settings-select {
+  background: #18181b; /* zinc-900 */
+  color: #fff;
+  border: 1px solid #27272a; /* zinc-800 */
+  border-radius: 0;
+  transition: border-color 0.15s ease;
+}
+.s2-lang .settings-select:hover {
+  border-color: #3f3f46; /* zinc-700 */
+}
+.s2-lang .settings-select:focus {
+  border-color: #dc2626;
+}
+
+/* SSH tab — server list, form and buttons in the site palette (colors only;
+   layout and spacing stay the stock settings look). */
+.s2-ssh .s2-item {
+  background: #0a0a0a;
+  border: 1px solid #27272a; /* zinc-800 */
+  border-radius: 0;
+  transition: border-color 0.15s ease;
+}
+.s2-ssh .s2-item:hover {
+  border-color: #3f3f46; /* zinc-700 */
+}
+.s2-ssh .s2-item-ic {
+  color: #dc2626; /* red-600 */
+}
+.s2-ssh .s2-item-title {
+  color: #fff;
+}
+.s2-ssh .s2-item-sub {
+  color: #71717a; /* zinc-500 */
+}
+.s2-ssh .s2-chip,
+.s2-gen .s2-chip {
+  color: #a1a1aa; /* zinc-400 */
+  background: #18181b; /* zinc-900 */
+  border: 1px solid #27272a;
+  border-radius: 0;
+}
+.s2-ssh .s2-input,
+.s2-ssh .settings-select {
+  background: #18181b; /* zinc-900 */
+  color: #fff;
+  border: 1px solid #27272a; /* zinc-800 */
+  border-radius: 0;
+  transition: border-color 0.15s ease;
+}
+.s2-ssh .s2-input:hover,
+.s2-ssh .settings-select:hover {
+  border-color: #3f3f46; /* zinc-700 */
+}
+.s2-ssh .s2-input:focus,
+.s2-ssh .settings-select:focus {
+  border-color: #dc2626;
+}
+.s2-ssh .settings-field label {
+  color: #fff;
+}
+.s2-ssh .settings-btn-primary,
+.s2-gen .settings-btn-primary {
+  background: #dc2626; /* red-600 */
+  border-radius: 0;
+  transition: background 0.15s ease;
+}
+.s2-ssh .settings-btn-primary:hover,
+.s2-gen .settings-btn-primary:hover {
+  background: #b91c1c; /* red-700, the site's hover:bg-red-700 */
+  filter: none;
+}
+.s2-ssh .settings-btn-outline,
+.s2-gen .settings-btn-outline,
+.s2-agent .settings-btn-outline {
+  background: none;
+  color: #fff;
+  border: none;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 1px #3f3f46; /* ring-1 zinc-700 */
+  transition: box-shadow 0.15s ease, color 0.15s ease;
+}
+.s2-ssh .settings-btn-outline:hover,
+.s2-gen .settings-btn-outline:hover,
+.s2-agent .settings-btn-outline:hover {
+  box-shadow: inset 0 0 0 1px #dc2626;
+  color: #fff;
+  background: none;
+}
+.s2-ssh .s2-icon-btn {
+  border-radius: 0;
+  color: #71717a;
+}
+.s2-ssh .s2-icon-btn:hover {
+  color: #fff;
+  border-color: #3f3f46;
+  background: #18181b;
+}
+.s2-ssh .s2-icon-btn.danger:hover {
+  color: #ef4444; /* red-500 */
+  border-color: rgba(239, 68, 68, 0.5);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+/* SSH inline add/edit form in the site palette (solid zinc ring, dark fill). */
+.s2-ssh .s2-form {
+  background: #0a0a0a;
+  border: 1px solid #27272a; /* zinc-800 */
+  border-radius: 0;
+}
+
+/* SEC.divider */
+.s2-ssh .s2-form .settings-field label {
+  color: #fff;
+}
+.ssh-optional {
+  margin-left: 8px;
+  padding: 1px 6px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #71717a; /* zinc-500 */
+  background: #18181b;
+  border: 1px solid #27272a;
+  vertical-align: middle;
+}
+
+/* Private-key file picker. */
+.ssh-keyfile-input {
+  display: none;
+}
+.ssh-keyfile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.ssh-keyfile-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: #fff;
+  background: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 1px #3f3f46; /* ring-1 zinc-700 */
+  cursor: pointer;
+  transition: box-shadow 0.15s ease, color 0.15s ease;
+}
+.ssh-keyfile-btn:hover {
+  box-shadow: inset 0 0 0 1px #dc2626;
+}
+.ssh-keyfile-loaded {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px 7px 12px;
+  background: #18181b;
+  border: 1px solid #27272a;
+  min-width: 0;
+  max-width: 100%;
+}
+.ssh-keyfile-ok {
+  flex-shrink: 0;
+  color: #22c55e; /* green-500 */
+}
+.ssh-keyfile-name {
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: #e4e4e7;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ssh-keyfile-clear {
+  flex-shrink: 0;
+  display: inline-flex;
+  padding: 3px;
+  border: none;
+  background: none;
+  color: #71717a;
+  cursor: pointer;
+  transition: color 0.12s ease;
+}
+.ssh-keyfile-clear:hover {
+  color: #ef4444;
+}
+
+/* About tab — kv rows, links, reload button and footer in the site palette. */
+.s2-about .s2-kv {
+  background: #0a0a0a;
+  border: 1px solid #27272a; /* zinc-800 */
+  border-radius: 0;
+  transition: border-color 0.15s ease;
+}
+.s2-about .s2-kv:hover {
+  border-color: #3f3f46; /* zinc-700 */
+}
+.s2-about .s2-kv-key {
+  color: #71717a; /* zinc-500 */
+}
+.s2-about .s2-kv-val {
+  color: #fff;
+}
+.s2-about .s2-kv a {
+  color: #ef4444; /* red-500, the site's link red */
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+.s2-about .s2-kv a:hover {
+  color: #f87171; /* red-400 */
+  text-decoration: none;
+}
+.s2-about .settings-action-btn {
+  background: none;
+  color: #fff;
+  border: none;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 1px #3f3f46; /* ring-1 zinc-700 */
+  transition: box-shadow 0.15s ease, color 0.15s ease;
+}
+.s2-about .settings-action-btn:hover {
+  box-shadow: inset 0 0 0 1px #dc2626;
+  color: #fff;
+  background: none;
+}
+.s2-about .settings-action-btn.active {
+  color: #ef4444;
+  box-shadow: inset 0 0 0 1px #ef4444;
+  background: rgba(220, 38, 38, 0.08);
+}
+.s2-about .settings-footer-banner {
+  border-top: 1px solid rgba(39, 39, 42, 0.6); /* zinc-800/60 */
+}
+.s2-about .settings-footer-banner p {
+  color: #a1a1aa; /* zinc-400 */
+}
+.s2-about .settings-footer-banner span {
+  color: #71717a; /* zinc-500 */
+  opacity: 1;
+}
+
+
+
+.s2a-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.s2a-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 2px #27272a; /* the site's ring-2 ring-zinc-800 */
+  background: none;
+  color: #d4d4d8;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: box-shadow 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+}
+.s2a-btn:hover {
+  box-shadow: inset 0 0 0 2px var(--accent-rgb);
+  color: #fff;
+}
+.s2a-btn-primary {
+  background: var(--accent-rgb);
+  box-shadow: none;
+  color: #fff;
+}
+.s2a-btn-primary:hover {
+  filter: brightness(1.1);
+  box-shadow: none;
+}
+
+/* ── General tab — the model row hosts the chat's ModelPicker. ──────────── */
+/* The generic .s2-row control box caps at 55% width; the picker trigger can
+   shrink (its name span ellipsizes), the menu overlays so width is fine. */
+.s2-gen .s2-row .model-picker {
+  min-width: 0;
+}
+/* The chat menu anchors to the composer's LEFT frame edge (left: -9px). Here
+   the picker sits at the row's right edge, so that offset pushes the 288px
+   menu past the card — anchor it to the trigger's right edge instead. */
+.s2-gen .model-menu,
+.s2-models .model-menu {
+  left: auto;
+  right: 0;
+}
+/* The trigger itself: match the row's dark chrome instead of the chat bg,
+   and give it more presence than the composer's compact picker. */
+.s2-gen .model-trigger,
+.s2-models .model-trigger {
+  background: #18181b; /* zinc-900 */
+  box-shadow: inset 0 0 0 1px #27272a; /* zinc-800 */
+  width: 260px;
+  max-width: 100%;
+  height: 38px;
+  padding: 0 13px;
+  font-size: 13px;
+}
+/* Let the control cell hold the wider trigger (default caps at 55%). */
+.s2-gen .s2-row-control,
+.s2-models .s2-row-control {
+  max-width: 70%;
+}
+.s2-gen .model-trigger:hover:not(:disabled),
+.s2-gen .model-trigger:focus-visible,
+.s2-models .model-trigger:hover:not(:disabled),
+.s2-models .model-trigger:focus-visible {
+  box-shadow: inset 0 0 0 1px #dc2626;
+}
+/* Rows in the recolored tab: same dark chrome as the SSH list rows. */
+.s2-gen .s2-row,
+.s2-models .s2-row {
+  background: #0a0a0a;
+  border: 1px solid #27272a; /* zinc-800 */
+  border-radius: 0;
+  transition: border-color 0.15s ease;
+}
+.s2-gen .s2-row:hover,
+.s2-models .s2-row:hover {
+  border-color: #3f3f46; /* zinc-700 */
+}
+
+/* ── Settings top bar (Edit Config / Export / Import / Reload) — site style:
+   flat dark buttons with the inset ring that flips to red on hover. ──────── */
+.s2-app .settings-top-bar .settings-action-btn {
+  background: none;
+  color: #fff;
+  border: none;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 1px #3f3f46; /* ring-1 zinc-700 */
+  transition: box-shadow 0.15s ease, color 0.15s ease;
+}
+.s2-app .settings-top-bar .settings-action-btn:hover {
+  box-shadow: inset 0 0 0 1px #dc2626;
+  color: #fff;
+  background: none;
+}
+.s2-app .settings-top-bar .settings-action-btn.active {
+  color: #ef4444;
+  box-shadow: inset 0 0 0 1px #ef4444;
+  background: rgba(220, 38, 38, 0.08);
+}
+
+/* Toggle rows act as buttons — suppress text selection on rapid clicks. */
+.settings-toggle-row,
+.s2-row {
+  user-select: none;
+}
+
+/* ── Models tab — library grouped by brand, site-styled rows. ──────────── */
+.s2-models-lib {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.s2-models-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.s2-models .s2-brand-head {
+  margin: 0;
+  color: #a1a1aa; /* zinc-400 */
+}
+.s2-models-rows {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #27272a; /* zinc-800 */
+}
+.s2-model-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: #0a0a0a;
+  transition: background-color 0.12s ease;
+}
+.s2-model-row + .s2-model-row {
+  border-top: 1px solid #27272a;
+}
+.s2-model-row:hover {
+  background: #171717;
+}
+.s2-model-ic {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #d4d4d8;
+}
+.s2-model-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.s2-model-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+}
+.s2-model-name > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.s2-model-default {
+  flex-shrink: 0;
+  margin-left: auto;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  font-size: 9px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fff;
+  background: #dc2626; /* red-600 */
+}
+.s2-model-id {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: #71717a; /* zinc-500 */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.s2-model-fmt {
+  flex-shrink: 0;
+  background: #000;
+  color: #a1a1aa;
+  border: 1px solid #27272a;
+  border-radius: 0;
+  padding: 4px 8px;
+  font-size: 10.5px;
+  font-family: var(--font-mono);
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.s2-model-fmt:hover {
+  border-color: #3f3f46; /* zinc-700 */
+}
+.s2-model-fmt:focus {
+  border-color: #dc2626;
+}
+
+/* ── Auto-Approve / Display / Context — shared hint + control colors ─────── */
+.s2-autoapprove .toggle-hint-text,
+.s2-display .toggle-hint-text,
+.s2-context .toggle-hint-text,
+.s2-autoapprove .field-hint-text,
+.s2-context .field-hint-text,
+.s2-context .field-hint,
+.s2-display .field-hint,
+.s2-autoapprove .slider-value,
+.s2-display .slider-value,
+.s2-context .slider-value {
+  color: #71717a; /* zinc-500 */
+}
+.s2-autoapprove .settings-field label,
+.s2-display .settings-field label,
+.s2-context .settings-field label {
+  color: #fff;
+}
+
+/* Slider value read-out: plain white mono number, no colored pill (the pill on
+   accent bg read muddy). Label above stays white. */
+.s2-autoapprove .slider-value,
+.s2-display .slider-value,
+.s2-context .slider-value {
+  color: #fff;
+  background: none;
+  padding: 0;
+  font-variant-numeric: tabular-nums;
+}
+.s2-autoapprove .slider-row label,
+.s2-display .slider-row label,
+.s2-context .slider-row label {
+  color: #fff;
+  font-weight: 500;
+}
+
+/* Auto-Approve: "approvals are automatic" note. */
+.s2aa-note {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  color: #a1a1aa; /* zinc-400 */
+  font-size: 12px;
+  background: rgba(24, 24, 27, 0.4); /* zinc-900/40 */
+  box-shadow: inset 0 0 0 1px #27272a;
+}
+.s2aa-note > svg {
+  flex-shrink: 0;
+  color: #dc2626;
+}
+.s2aa-note span {
+  flex: 1;
+  min-width: 0;
+}
+.s2aa-note-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #ef4444;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.s2aa-note-link:hover {
+  color: #f87171;
+}
+
+/* Command allow-list editor. */
+.s2aa-allow {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.s2aa-allow-add {
+  display: flex;
+  gap: 8px;
+}
+.s2-autoapprove .s2-input {
+  flex: 1;
+  width: auto;
+  background: #18181b;
+  color: #fff;
+  border: 1px solid #27272a;
+  border-radius: 0;
+}
+.s2-autoapprove .s2-input:focus {
+  border-color: #dc2626;
+}
+.s2aa-allow-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: #fff;
+  background: #dc2626;
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.s2aa-allow-btn:hover {
+  background: #b91c1c;
+}
+.s2aa-allow-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+  pointer-events: none;
+}
+.s2aa-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.s2aa-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 4px 3px 9px;
+  background: #18181b;
+  border: 1px solid #27272a;
+  font-size: 11px;
+}
+.s2aa-chip code {
+  font-family: var(--font-mono);
+  color: #e4e4e7;
+}
+.s2aa-chip-x {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px;
+  border: none;
+  background: none;
+  color: #71717a;
+  cursor: pointer;
+  transition: color 0.12s ease;
+}
+.s2aa-chip-x:hover {
+  color: #ef4444;
+}
+.s2aa-chip-x:disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* Context: custom-instructions textarea — auto-grows (JS) up to a cap, then
+   scrolls. resize disabled since height is content-driven. */
+.s2-textarea {
+  width: 100%;
+  resize: none;
+  min-height: 84px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 10px 12px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  line-height: 1.5;
+  color: #e4e4e7;
+  background: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 0;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+.s2-textarea:focus {
+  border-color: #dc2626;
+}
+.s2-textarea::placeholder {
+  color: #52525b;
+}
+
+/* ── Agent tab — approval mode cards + SSH toggle in the site palette. ───── */
+.s2-agent .mode-card {
+  background: #0a0a0a;
+  box-shadow: inset 0 0 0 1px #27272a; /* zinc-800 */
+  color: var(--fg-dim);
+}
+.s2-agent .mode-card:hover {
+  box-shadow: inset 0 0 0 1px #3f3f46; /* zinc-700 */
+}
+.s2-agent .mode-card-chat.active,
+.s2-agent .mode-card-agent.active {
+  color: #fff;
+  background: rgba(220, 38, 38, 0.06);
+  box-shadow: inset 0 0 0 2px #dc2626; /* red-600 */
+}
+.s2-agent .mode-card-title {
+  color: inherit;
+}
+.s2-agent .mode-card-sub {
+  color: #71717a; /* zinc-500 */
+}
+
+/* ── Luno App tab — quiet minimal card (Providers → Luno treatment). ─────── */
+.s2l-card {
+  border-radius: 0;
+  box-shadow: inset 0 0 0 1px #27272a; /* zinc-800 ring */
+  background: rgba(24, 24, 27, 0.35); /* zinc-900/35, subtle */
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: box-shadow 0.15s ease;
+}
+.s2l-card:hover {
+  box-shadow: inset 0 0 0 1px #3f3f46; /* zinc-700 */
+}
+.s2l-card-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+/* Luno logo — the site BrandMark: white square ring (ring-2) + Moon at ~66%. */
+.s2l-logo {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  box-shadow: inset 0 0 0 2px #fff; /* ring-2 ring-white ring-inset */
+  color: #fff;
+}
+.s2l-card-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.s2l-card-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+}
+.s2l-card-line {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: #71717a; /* zinc-500 */
+}
+.s2l-card-side {
+  flex-shrink: 0;
+}
+
+/* Connected status — quiet text + green dot, no chip box. */
+.s2l-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #a1a1aa;
+  white-space: nowrap;
+}
+.s2l-status.ok {
+  color: #22c55e; /* green-500 */
+}
+.s2l-status-dot {
+  width: 6px;
+  height: 6px;
+  background: #52525b;
+}
+.s2l-status.ok .s2l-status-dot {
+  background: #22c55e;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.6);
+}
+
+/* Connected row: account line + small logout icon button. */
+.s2l-connected {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid #27272a;
+}
+.s2l-account {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: #71717a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.s2l-account-name {
+  margin-left: 6px;
+  color: #fff;
+  font-weight: 700;
+}
+.s2l-icon-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 0;
+  background: none;
+  color: #71717a;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px transparent;
+  transition: color 0.12s ease, box-shadow 0.12s ease, background-color 0.12s ease;
+}
+.s2l-icon-btn:hover {
+  color: #ef4444;
+  background: #171717;
+  box-shadow: inset 0 0 0 1px #27272a;
+}
+
+/* Pairing (unlinked, in progress): QR + code inline. */
+.s2l-error {
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(248, 113, 113, 0.3);
+}
+.s2l-pair {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  padding-top: 14px;
+  border-top: 1px solid #27272a;
+}
+.s2l-qr {
+  flex-shrink: 0;
+  padding: 9px;
+  background: #fff; /* QR needs a light quiet-zone to scan */
+  line-height: 0;
+}
+.s2l-pair-side {
+  flex: 1;
+  min-width: 190px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.s2l-code-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #52525b;
+}
+.s2l-code {
+  align-self: flex-start;
+  padding: 6px 12px;
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #fff;
+  background: #18181b;
+  box-shadow: inset 0 0 0 1px #27272a;
+}
+.s2l-waiting {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 2px;
+  font-size: 11px;
+  color: #71717a;
+}
+/* Plain grey circular spinner (matches the providers Test spinner). */
+.s2l-spin {
+  color: #a1a1aa; /* zinc-400 */
+  animation: s2-spin 0.7s linear infinite;
+}
+
+/* Buttons — the shared site button idiom, scoped to this tab. */
+.s2l-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: #fff;
+  background: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 1px #3f3f46;
+  cursor: pointer;
+  text-decoration: none;
+  transition: box-shadow 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+}
+.s2l-btn:hover {
+  box-shadow: inset 0 0 0 1px #dc2626;
+}
+.s2l-btn-primary {
+  background: #dc2626;
+  box-shadow: none;
+}
+.s2l-btn-primary:hover {
+  background: #b91c1c;
+  box-shadow: none;
+}
+.s2l-btn-ghost {
+  align-self: flex-start;
+  color: #a1a1aa;
+  box-shadow: inset 0 0 0 1px #27272a;
+}
+.s2l-btn-ghost:hover {
+  color: #fff;
+  box-shadow: inset 0 0 0 1px #3f3f46;
+}

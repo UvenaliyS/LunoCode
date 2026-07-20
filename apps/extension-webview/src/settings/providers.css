@@ -1,0 +1,580 @@
+/* ───────────────────────────────────────────────────────────────────────────
+   Providers tab — site-style sharp UI (see the s2a-* block in settings2.css).
+   Rules: border-radius 0, zinc palette (#27272a borders, #171717 hovers,
+   #71717a dim), accent = var(--accent-rgb).
+   ─────────────────────────────────────────────────────────────────────────── */
+
+.prov-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.prov-section-title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.prov-empty {
+  padding: 14px 16px;
+  border: 1px dashed #27272a;
+  font-size: 12px;
+  color: #71717a;
+}
+
+/* ── Provider rows ───────────────────────────────────────────────────────── */
+
+.prov-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #27272a;
+}
+
+.prov-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: rgba(10, 10, 10, 0.5);
+  transition: background-color 0.12s ease;
+}
+
+.prov-row + .prov-row {
+  border-top: 1px solid #27272a;
+}
+
+.prov-row:hover {
+  background: #171717;
+}
+
+.prov-row-ic {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid #27272a;
+  background: #0a0a0a;
+  color: #a1a1aa;
+}
+
+.prov-monogram {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: #a1a1aa;
+  letter-spacing: 0.5px;
+}
+
+.prov-row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.prov-row-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.prov-row-name > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.prov-row-endpoint {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: #71717a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.prov-row-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── Test result (plain inline text) ─────────────────────────────────────── */
+
+.prov-result {
+  flex-shrink: 0;
+  max-width: 220px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: #71717a; /* zinc-500 — quiet by default */
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.prov-result-models {
+  color: #71717a; /* zinc-500 */
+}
+
+.prov-result.err {
+  color: #ef4444; /* red-500 */
+}
+
+/* Ping latency bands: green ≤300 · yellow ≤700 · orange ≤1000 · red >1000. */
+.prov-ping {
+  font-weight: 600;
+}
+.prov-ping.p-good {
+  color: #22c55e; /* green-500 */
+}
+.prov-ping.p-warn {
+  color: #eab308; /* yellow-500 */
+}
+.prov-ping.p-high {
+  color: #f97316; /* orange-500 */
+}
+.prov-ping.p-crit {
+  color: #ef4444; /* red-500 */
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+
+.prov-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 11px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  border: 0;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 1px #27272a;
+  background: none;
+  color: #d4d4d8;
+  cursor: pointer;
+  transition: box-shadow 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+}
+
+.prov-btn:hover {
+  box-shadow: inset 0 0 0 1px var(--accent-rgb);
+  color: #fff;
+}
+
+.prov-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+  pointer-events: none;
+}
+
+.prov-btn.primary {
+  background: var(--accent-rgb);
+  box-shadow: none;
+  color: #fff;
+  padding: 0 14px;
+  height: 28px;
+}
+
+.prov-btn.primary:hover {
+  filter: brightness(1.1);
+}
+
+/* Test button: fixed width so the spinner never resizes it or shifts siblings.
+   The label stays rendered (hidden) under the spinner to reserve its box. */
+.prov-test-btn {
+  position: relative;
+  width: 58px;
+  padding: 0;
+}
+
+.prov-test-btn:disabled {
+  /* Keep it fully visible while testing — the spinner is the busy signal. */
+  opacity: 1;
+}
+
+.prov-test-label.hidden {
+  visibility: hidden;
+}
+
+.prov-spin {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin: -6.5px 0 0 -6.5px;
+  color: #a1a1aa; /* zinc-400 — plain grey spinner */
+  animation: s2-spin 0.7s linear infinite;
+}
+
+.prov-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid transparent;
+  border-radius: 0;
+  background: none;
+  color: #71717a;
+  cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease, background-color 0.12s ease;
+}
+
+.prov-icon-btn:hover {
+  color: #fff;
+  border-color: #27272a;
+  background: #171717;
+}
+
+.prov-icon-btn.danger:hover {
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+/* ── Luno card — quiet minimal treatment: neutral wash, hk-box ring. ─────── */
+
+.prov-luno {
+  border: none;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 1px #27272a; /* zinc-800 ring */
+  background: rgba(24, 24, 27, 0.35); /* zinc-900/35, subtle */
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.prov-luno:hover {
+  box-shadow: inset 0 0 0 1px #3f3f46; /* zinc-700 */
+}
+
+.prov-luno-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* The Luno logo — the exact site BrandMark: a white square ring (ring-2) with
+   the phosphor Moon centered at ~66% of the box. Same mark used everywhere. */
+.prov-luno-ic {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  box-shadow: inset 0 0 0 2px #fff; /* ring-2 ring-white ring-inset */
+  color: #fff;
+}
+
+.prov-luno-ic svg {
+  display: block;
+  flex-shrink: 0;
+}
+
+/* Connected status — quiet green text + live dot (matches Luno App "Linked"). */
+.prov-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #22c55e; /* green-500 */
+  white-space: nowrap;
+}
+
+.prov-status-dot {
+  width: 6px;
+  height: 6px;
+  background: #22c55e; /* green-500 */
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.6);
+}
+
+.prov-luno-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.prov-luno-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.prov-luno-line {
+  font-size: 11.5px;
+  color: #71717a;
+}
+
+.prov-luno-side {
+  flex-shrink: 0;
+}
+
+.prov-luno-sub {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid #27272a;
+  min-width: 0;
+}
+
+.prov-luno-sub .prov-row-endpoint {
+  flex: 1;
+}
+
+/* ── Catalog grid ────────────────────────────────────────────────────────── */
+
+.prov-catalog {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.prov-tile {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 12px;
+  border: 1px solid #27272a;
+  border-radius: 0;
+  background: rgba(10, 10, 10, 0.5);
+  color: #d4d4d8;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+
+.prov-tile:hover {
+  background: #171717;
+  border-color: #3f3f46;
+}
+
+.prov-tile-ic {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  color: #a1a1aa;
+}
+
+.prov-tile span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Dialog — mirrors the site modals (bg-[#0a0a0a] · border-zinc-800 · p-6 ·
+   space-y-4 · max-w-sm), inputs bg-black focus:border-red-600, and the two
+   full-width flex-1 buttons at the bottom. ───────────────────────────────── */
+
+.prov-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.8); /* bg-black/80 */
+  animation: fadeIn 0.15s ease-out;
+}
+
+.prov-dialog {
+  width: 384px; /* max-w-sm */
+  max-width: 100%;
+  max-height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px; /* space-y-4 */
+  padding: 24px; /* p-6 */
+  border: 1px solid #27272a; /* zinc-800 */
+  border-radius: 0;
+  background: #0a0a0a;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+}
+
+.prov-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.prov-dialog-title {
+  font-size: 14px; /* text-sm */
+  font-weight: 700;
+  color: #fff;
+}
+
+.prov-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.prov-field label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #71717a; /* zinc-500 */
+}
+
+.prov-input,
+.prov-select {
+  width: 100%;
+  padding: 8px 12px; /* px-3 py-2 */
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: #e4e4e7; /* zinc-200 */
+  background: #000; /* bg-black */
+  border: 1px solid #27272a; /* zinc-800 */
+  border-radius: 0;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.prov-input:focus,
+.prov-select:focus {
+  border-color: #dc2626; /* focus:border-red-600 */
+}
+
+.prov-select:disabled {
+  opacity: 0.45;
+}
+
+.prov-format-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.prov-format-row .prov-select {
+  flex: 1;
+}
+
+.prov-auto {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: #71717a;
+  background: #000; /* bg-black */
+  border: 1px solid #27272a;
+  border-radius: 0;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.prov-auto:hover {
+  border-color: #3f3f46; /* zinc-700 */
+}
+
+.prov-auto.on {
+  color: #fff;
+  border-color: #dc2626;
+}
+
+/* Checkbox box — empty by default, red fill + white check when on. */
+.prov-auto-box {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  color: #fff;
+  border: 1px solid #3f3f46; /* zinc-700 */
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.prov-auto.on .prov-auto-box {
+  background: #dc2626; /* red-600 */
+  border-color: #dc2626;
+}
+
+.prov-dialog-actions {
+  display: flex;
+  gap: 8px; /* gap-2 */
+  padding-top: 4px;
+}
+
+/* Full-width paired buttons, exactly like the site modal footer. */
+.prov-dlg-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 0; /* py-2 */
+  font-size: 12px; /* text-xs */
+  font-weight: 700;
+  font-family: var(--font-mono);
+  border: 1px solid #27272a; /* zinc-800 */
+  border-radius: 0;
+  background: none;
+  color: #a1a1aa; /* zinc-400 */
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.prov-dlg-btn:hover {
+  color: #fff;
+}
+
+.prov-dlg-btn.primary {
+  background: #dc2626; /* bg-red-600 */
+  border-color: #dc2626;
+  color: #fff;
+}
+
+.prov-dlg-btn.primary:hover {
+  background: #b91c1c; /* hover:bg-red-700 */
+  border-color: #b91c1c;
+}
+
+.prov-dlg-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* Drop-in SVG logos (provider-icons/*.svg) — scale to the given box. */
+.prov-svg {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.prov-svg svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}

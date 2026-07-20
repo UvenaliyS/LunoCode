@@ -1,0 +1,13 @@
+{
+  "name": "@luno/gateway",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Local dev harness implementing the Luno gateway contract (device-code auth, usage, streamed chat) so the extension can run end-to-end offline.",
+  "license": "MIT",
+  "type": "module",
+  "main": "src/server.mjs",
+  "scripts": {
+    "dev": "node src/server.mjs",
+    "start": "node src/server.mjs"
+  }
+}

@@ -1,0 +1,14 @@
+# Source & build config — only dist/ ships
+src/**
+esbuild.mjs
+tsconfig.json
+.vscode/**
+
+# Keep out everything but the bundle, manifest, media, license, readme
+**/*.ts
+**/*.map
+**/.gitignore
+node_modules/**
+.impeccable/**
+scripts/**
+*.vsix

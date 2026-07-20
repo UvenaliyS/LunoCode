@@ -1,0 +1,21 @@
+{
+  "name": "luno-code",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Luno Code — open-source AI coding agent for VS Code. Chat & Agent modes, multi-file edits behind an approval gate, SSH remote execution, and multi-provider models under one flat-rate key.",
+  "license": "MIT",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "dev:extension": "npm run dev --workspace apps/extension",
+    "dev:webview": "npm run dev --workspace apps/extension-webview",
+    "dev:gateway": "npm run dev --workspace apps/gateway",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  }
+}

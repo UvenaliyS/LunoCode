@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.sqlite3
+*.db
+
+# Build output
+dist/
+out/
+*.vsix
+*.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.idea/
+*.local
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+
+# Test / coverage
+coverage/
+.vscode-test/
+
+# Agent dev tooling (not part of the product)
+.claude/
+.impeccable/

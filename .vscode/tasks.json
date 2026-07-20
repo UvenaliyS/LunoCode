@@ -1,0 +1,19 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "luno: build",
+      "type": "shell",
+      "command": "npm run build",
+      "problemMatcher": [],
+      "group": "build"
+    },
+    {
+      "label": "luno: gateway (local)",
+      "type": "shell",
+      "command": "npm run dev:gateway",
+      "isBackground": true,
+      "problemMatcher": []
+    }
+  ]
+}
