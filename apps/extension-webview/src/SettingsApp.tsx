@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import {
   Bell,
   Cpu,
-  DeviceMobile,
   Flask,
   Gear,
   Globe,
@@ -17,6 +16,8 @@ import {
 import { useLunoState } from "./useLunoState";
 import type { SettingsTabId } from "./contracts";
 import { AgentIcon } from "./components/AgentIcon";
+import { LunoMoonIcon } from "./components/LunoMoonIcon";
+import { post } from "./vscodeApi";
 import { I18nProvider, LOCALES, type Lang } from "./settings/i18n";
 import {
   SettingsShell,
@@ -71,12 +72,22 @@ export function SettingsApp() {
     window.__LUNO_SETTINGS_TAB__ = undefined;
   }, []);
 
+  // Luno App connection: the rail shows a green dot on the tab when a phone
+  // is paired and the relay is live (same status the RemoteTab renders).
+  const [remoteConnected, setRemoteConnected] = useState(false);
+
   // Deep-links while already mounted (e.g. sshAdd card → ssh tab).
   useHostMessage((msg) => {
     if (msg.type === "navigate" && msg.view === "settings" && msg.settingsTab) {
       setTab(msg.settingsTab);
     }
+    if (msg.type === "remote") setRemoteConnected(msg.status.connected);
   });
+
+  // Ask the bridge for current status once so the dot is right on first paint.
+  useEffect(() => {
+    post({ type: "remoteStatus" });
+  }, []);
 
   // Language: "auto" (the default) follows the VS Code display language,
   // which the webview inherits as navigator.language.
@@ -92,6 +103,7 @@ export function SettingsApp() {
   const rail: RailItem[] = [
     { id: "general", label: t.tabs.general, Icon: Gear },
     { id: "account", label: t.tabs.account, Icon: User },
+    { id: "remote", label: t.tabs.app, Icon: LunoMoonIcon, dot: remoteConnected },
     { id: "providers", label: t.tabs.providers, Icon: Cpu },
     { id: "models", label: t.tabs.models, Icon: StarFour },
     { id: "agent", label: t.tabs.agent, Icon: AgentRailIcon },
@@ -100,7 +112,6 @@ export function SettingsApp() {
     { id: "notifications", label: t.tabs.notifications, Icon: Bell },
     { id: "context", label: t.tabs.context, Icon: Note },
     { id: "ssh", label: t.tabs.ssh, Icon: TerminalWindow },
-    { id: "remote", label: t.tabs.remote, Icon: DeviceMobile },
     { id: "experimental", label: t.tabs.experimental, Icon: Flask },
     { id: "language", label: t.tabs.language, Icon: Globe },
     { id: "about", label: t.tabs.about, Icon: Info },

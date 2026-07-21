@@ -138,9 +138,18 @@
       },
       {
         "command": "luno.inlineEdit",
-        "title": "Edit selection (inline)",
+        "title": "Luno: Edit Selection",
         "category": "Luno",
         "icon": "$(sparkle)"
+      },
+      {
+        "command": "luno.chatAboutSelection",
+        "title": "Luno: Chat About This",
+        "category": "Luno",
+        "icon": {
+          "light": "media/luno-moon.svg",
+          "dark": "media/luno-moon-white.svg"
+        }
       },
       {
         "command": "luno.showUsage",
@@ -190,11 +199,18 @@
         {
           "command": "luno.openInEditorTab",
           "group": "navigation@100"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "luno.chatAboutSelection",
+          "when": "editorHasSelection",
+          "group": "luno@1"
         },
         {
           "command": "luno.inlineEdit",
-          "when": "editorTextFocus",
-          "group": "navigation"
+          "when": "editorHasSelection",
+          "group": "luno@2"
         }
       ]
     },
@@ -218,6 +234,43 @@
           "type": "string",
           "default": "https://api.luno.codes",
           "markdownDescription": "Legacy bootstrap override for the Luno gateway URL. Settings now live in luno.json (Luno: Open Config File); this key is only read on first run for migration."
+        }
+      }
+    },
+    "icons": {
+      "luno-moon": {
+        "description": "Luno Code logo (moon in a square frame)",
+        "default": {
+          "fontPath": "media/luno-icons.woff",
+          "fontCharacter": ""
+        }
+      },
+      "luno-plan-starter": {
+        "description": "Starter plan (code brackets)",
+        "default": {
+          "fontPath": "media/luno-icons.woff",
+          "fontCharacter": ""
+        }
+      },
+      "luno-plan-plus": {
+        "description": "Plus plan (CPU)",
+        "default": {
+          "fontPath": "media/luno-icons.woff",
+          "fontCharacter": ""
+        }
+      },
+      "luno-plan-power": {
+        "description": "Power plan (lightning)",
+        "default": {
+          "fontPath": "media/luno-icons.woff",
+          "fontCharacter": ""
+        }
+      },
+      "luno-plan-dev": {
+        "description": "Dev plan (terminal window)",
+        "default": {
+          "fontPath": "media/luno-icons.woff",
+          "fontCharacter": ""
         }
       }
     }

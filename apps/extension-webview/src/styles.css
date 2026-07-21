@@ -1544,6 +1544,9 @@ button {
   padding: 16px 8px;
   justify-content: flex-start;
   gap: 16px;
+  /* Bound the height so the tab list inside can scroll rather than overflow. */
+  min-height: 0;
+  overflow: hidden;
 }
 
 .settings-sidebar-header {
@@ -1570,6 +1573,14 @@ button {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  /* When the panel is short, scroll the tab list instead of letting the
+     buttons compress (which squeezed the icons down to nothing). */
+  min-height: 0;
+  overflow-y: auto;
+}
+/* The glyph keeps its size no matter how tight the rail gets. */
+.settings-tab-btn > svg {
+  flex-shrink: 0;
 }
 
 .settings-tab-btn {
@@ -3140,7 +3151,8 @@ button {
   box-shadow: inset 0 0 0 2px var(--border); /* no outer drop shadow */
 }
 .usage-ring-wrap:hover .usage-popover,
-.usage-ring-wrap:focus-within .usage-popover {
+.usage-ring-wrap:focus-within .usage-popover,
+.usage-ring-wrap.pinned .usage-popover {
   display: flex;
   animation: none; /* appear/disappear instantly, no fade */
 }

@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowClockwise,
   ArrowSquareOut,
@@ -11,7 +12,7 @@ import {
   WarningOctagon,
   type Icon,
 } from "@phosphor-icons/react";
-import type { UsageBucket, UsageSnapshot } from "../contracts";
+import type { ExtensionToWebview, UsageBucket, UsageSnapshot } from "../contracts";
 import { post } from "../vscodeApi";
 
 /** Four usage bands, low→high: green → yellow → orange → red. */
@@ -46,6 +47,35 @@ const LEVEL_ICON: Record<Lvl, Icon> = {
  * actions) in a panel that unfolds upward.
  */
 export function UsageRing({ usage }: { usage: UsageSnapshot }) {
+  // Status-bar click ("luno.showUsage") pins the popover open — same branded
+  // panel the ring shows on hover. Click-outside / Escape / re-hover close it.
+  const [pinned, setPinned] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function onMessage(event: MessageEvent<ExtensionToWebview>) {
+      if (event.data?.type === "showUsagePopover") setPinned(true);
+    }
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
+
+  useEffect(() => {
+    if (!pinned) return;
+    function onDocClick(e: MouseEvent) {
+      if (!wrapRef.current?.contains(e.target as Node)) setPinned(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setPinned(false);
+    }
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [pinned]);
+
   // The bucket closest to its limit drives the ring + colour band.
   const tightest = usage.buckets.reduce((worst, b) => {
     const frac = b.limit ? b.used / b.limit : 0;
@@ -61,11 +91,15 @@ export function UsageRing({ usage }: { usage: UsageSnapshot }) {
   const StatusIcon = LEVEL_ICON[level];
 
   return (
-    <div className={`usage-ring-wrap lvl-${level}`}>
+    <div
+      ref={wrapRef}
+      className={`usage-ring-wrap lvl-${level}${pinned ? " pinned" : ""}`}
+    >
       <div
         className="usage-mini"
         title={`${usage.plan} · ${pct}% used`}
         aria-label={`Usage ${pct}%`}
+        onClick={() => setPinned((p) => !p)}
       >
         <span className="usage-ring" style={{ ["--frac" as string]: usedFrac }} />
       </div>

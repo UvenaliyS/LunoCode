@@ -586,6 +586,8 @@ export type ExtensionToWebview =
   | { type: "conn"; conn: ConnState }
   | { type: "error"; message: string }
   | { type: "navigate"; view: ViewKind; settingsTab?: SettingsTabId }
+  /** Pop the composer's branded usage panel (status-bar click). */
+  | { type: "showUsagePopover" }
   | {
       type: "linkChallenge";
       channel: LinkChannel;

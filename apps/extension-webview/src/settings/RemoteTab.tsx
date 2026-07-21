@@ -13,6 +13,11 @@ import type { RemoteStatus, WebviewState } from "../contracts";
 import { useT } from "./i18n";
 import { SettingsCard, Toggle, useHostMessage } from "./primitives";
 
+/** Display form of a pairing code: ABCD-EFGH (dash is chrome, not data). */
+function formatPairCode(code: string): string {
+  return code.length > 4 ? `${code.slice(0, 4)}-${code.slice(4)}` : code;
+}
+
 /** QR payload prefix — must match PAIR_QR_PREFIX in the relay protocol. */
 const QR_PREFIX = "luno-pair:";
 
@@ -96,7 +101,7 @@ export function RemoteTab({ state }: { state: WebviewState }) {
             </div>
             <div className="s2l-pair-side">
               <span className="s2l-code-label">{t.remoteTab.scanHint}</span>
-              <span className="s2l-code">{pairing.code}</span>
+              <span className="s2l-code">{formatPairCode(pairing.code)}</span>
               <span className="s2l-waiting">
                 <CircleNotch size={13} className="s2l-spin" weight="bold" />
                 {t.remoteTab.expiresIn}{" "}

@@ -93,6 +93,14 @@ export class LunoController {
       this.broadcast({ type: "sshServers", servers: this.ssh.list() });
       this.pushState();
     });
+    // Keep the status-bar meter live: usage otherwise only refreshed after a
+    // turn, so an idle window showed stale numbers. Cheap key-authed GET.
+    setInterval(
+      () => {
+        if (this.auth.isAuthed) void this.refreshUsage();
+      },
+      2 * 60 * 1000,
+    ).unref?.();
   }
 
   // --- webview registration --------------------------------------------------

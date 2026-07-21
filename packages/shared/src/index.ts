@@ -802,6 +802,8 @@ export type ExtensionToWebview =
   | { type: "error"; message: string }
   /** Switch which screen the webview renders, in-place. */
   | { type: "navigate"; view: ViewKind; settingsTab?: SettingsTabId }
+  /** Pop the composer's branded usage panel (status-bar click). */
+  | { type: "showUsagePopover" }
   /** A device-code link attempt started — render code + QR and wait. */
   | {
       type: "linkChallenge";

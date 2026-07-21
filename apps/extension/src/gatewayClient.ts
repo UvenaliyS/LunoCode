@@ -224,7 +224,24 @@ export class GatewayClient {
         this.onAuthInvalid?.();
       }
       const body = await res.text().catch(() => "");
-      throw new Error(`Gateway ${res.status} ${res.statusText}: ${body}`);
+      // Never leak an HTML error page (nginx/Caddy 404s etc.) into UI error
+      // strings — "<!doctype html>…" reads as garbage in banners/tooltips.
+      // Prefer a JSON error/message field; otherwise short plain text only.
+      let detail = "";
+      const trimmed = body.trim();
+      if (trimmed && !/^\s*</.test(trimmed)) {
+        try {
+          const parsed = JSON.parse(trimmed) as { error?: unknown; message?: unknown };
+          detail = String(parsed.error ?? parsed.message ?? "").slice(0, 200);
+        } catch {
+          detail = trimmed.slice(0, 200);
+        }
+      }
+      throw new Error(
+        detail
+          ? `Gateway ${res.status} ${res.statusText}: ${detail}`
+          : `Gateway ${res.status} ${res.statusText}`,
+      );
     }
     return (await res.json()) as T;
   }
