@@ -12,3 +12,7 @@ node_modules/**
 .impeccable/**
 scripts/**
 *.vsix
+
+# README pulls these over absolute GitHub URLs — no need to ship them in the VSIX
+media/ide.png
+media/banner.png
