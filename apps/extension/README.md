@@ -1,12 +1,14 @@
 <div align="center">
 
-<img src="media/banner.png" width="480" alt="Luno Code" />
+<img src="https://raw.githubusercontent.com/UvenaliyS/LunoCode/main/apps/extension/media/banner.png" width="480" alt="Luno Code" />
 
 # Luno Code: AI Coding Agent, Chat & Remote Control
 
 **One flat-rate key. Claude, GPT & Gemini. An agent that does the work — and asks before it touches anything.**
 
 [Website](https://luno.codes) · [Install](https://luno.codes) · [Models](https://luno.codes/models) · [Docs](https://luno.codes/docs) · [Support](https://luno.codes/support)
+
+<img src="https://raw.githubusercontent.com/UvenaliyS/LunoCode/main/apps/extension/media/ide.png" width="720" alt="Luno Code in VS Code" />
 
 </div>
 
