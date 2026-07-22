@@ -76,6 +76,10 @@ export type RelayFrame =
       kind: "e2w";
       /** Target app connId; omitted = fan-out to every phone of this ext. */
       to?: string;
+      /** Target every connection of ONE paired device — lets the extension
+       *  send per-device content (e.g. project-scope-filtered session lists)
+       *  without knowing connIds. Ignored when `to` is set. */
+      toDevice?: string;
       payload: ExtensionToWebview;
     }
   | {
@@ -90,7 +94,9 @@ export type RelayFrame =
 
   // --- liveness / resume ---
   | { v: 1; kind: "presence"; extOnline: boolean } // server → apps
-  | { v: 1; kind: "resync"; to: string } // server → ext (new app joined)
+  // server → ext (new app joined). deviceId identifies WHICH paired device the
+  // connId belongs to, so the extension can scope-filter the snapshot.
+  | { v: 1; kind: "resync"; to: string; deviceId?: string }
   | { v: 1; kind: "ping" }
   | { v: 1; kind: "pong" };
 

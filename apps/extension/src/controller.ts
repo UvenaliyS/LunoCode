@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import * as crypto from "node:crypto";
 import type { GatewayClient, ProviderTarget } from "./gatewayClient";
 import type { AuthManager } from "./authManager";
 import type { UsageStatusBar } from "./usageStatusBar";
@@ -19,6 +20,7 @@ import type {
   ConnState,
   ExtensionToWebview,
   ModelInfo,
+  PromptOrigin,
   Provider,
   RemoteStatus,
   SettingsTabId,
@@ -26,7 +28,7 @@ import type {
   WebviewToExtension,
   UsageSnapshot,
 } from "./types";
-import { inferModelBrand } from "./types";
+import { inferModelBrand, LOCAL_ORIGIN } from "./types";
 
 /** Minimal surface the controller needs from the remote bridge. Defined here
  *  (not imported) to avoid a controller ⇄ remoteBridge require cycle. */
@@ -51,7 +53,13 @@ export class LunoController {
   private selectedModel: string;
   private nonLogging = true;
   private conn: ConnState = "unknown";
+  /** Backoff retry loop that un-sticks the "Gateway offline" state. */
+  private connRetryTimer?: NodeJS.Timeout;
+  private connRetryMs = 5_000;
   private abort?: AbortController;
+  /** Origin of the turn currently running — hardens the agent for
+   *  project-scoped remote devices (one turn at a time; see handlePrompt). */
+  private turnOrigin: PromptOrigin = LOCAL_ORIGIN;
   /** Last usage snapshot from the gateway, kept so a freshly-opened webview
    *  (e.g. the Settings tab panel) gets it in its initial state. */
   private lastUsage?: UsageSnapshot;
@@ -166,7 +174,10 @@ export class LunoController {
 
   // --- message handling ------------------------------------------------------
 
-  async handle(msg: WebviewToExtension): Promise<void> {
+  async handle(
+    msg: WebviewToExtension,
+    origin: PromptOrigin = LOCAL_ORIGIN,
+  ): Promise<void> {
     switch (msg.type) {
       case "ready":
         this.pushState();
@@ -180,6 +191,7 @@ export class LunoController {
           msg.mode ?? "chat",
           msg.contextPaths ?? [],
           msg.attachments ?? [],
+          origin,
         );
         break;
       case "stop":
@@ -595,8 +607,13 @@ export class LunoController {
     mode: ChatMode,
     contextPaths: string[] = [],
     attachments: ChatAttachment[] = [],
+    origin: PromptOrigin = LOCAL_ORIGIN,
   ): Promise<void> {
     void mode; // tools are always available now; the chat/agent toggle is cosmetic
+    // Remember who started this turn — buildAgentRunner reads it to harden the
+    // approval policy for project-scoped remote devices. One turn at a time
+    // (a new prompt aborts the previous), so an instance field is safe.
+    this.turnOrigin = origin;
     // Read any attached context files and build a preamble injected into the
     // model input only — the displayed user message stays as the typed text,
     // with the attached files listed for reference.
@@ -781,6 +798,7 @@ export class LunoController {
         this.activeSessionId,
         this.messages,
         this.selectedModel,
+        this.workspaceStamp(),
       );
       // First save minted the session id → the fresh chat's draft slot (if
       // any) now belongs to it.
@@ -1060,12 +1078,41 @@ export class LunoController {
             );
           }),
       },
-      settings.approvalMode,
-      settings.autoApprove,
+      ...this.effectiveApprovalPolicy(settings),
       sshBridge,
     );
 
     return runner;
+  }
+
+  /**
+   * [approvalMode, autoApprove] for the current turn. Local and full-access
+   * remote turns use the user's settings. A PROJECT-scoped remote turn gets a
+   * hardened policy: no auto mode, no per-tool auto-approve, no command
+   * allow-list — every mutating tool (Bash/Write/Edit/sshExec) stops at the
+   * approval gate and waits for an explicit tap. This is what makes "project"
+   * scope real: file tools are workspace-bound by construction, and anything
+   * that could escape (shell, SSH) needs the human. Wants a file from another
+   * project? The agent runs `cp /other/file .` and the user approves that one
+   * visible command.
+   */
+  private effectiveApprovalPolicy(
+    settings: LunoSettings,
+  ): [LunoSettings["approvalMode"], LunoSettings["autoApprove"]] {
+    const hardened =
+      this.turnOrigin.kind === "remote" && this.turnOrigin.scope === "project";
+    if (!hardened) return [settings.approvalMode, settings.autoApprove];
+    return [
+      "ask",
+      {
+        ...settings.autoApprove,
+        writeFiles: false,
+        applyEdits: false,
+        runCommands: false,
+        sshCommands: false,
+        allowedCommands: [],
+      },
+    ];
   }
 
   /**
@@ -1193,10 +1240,62 @@ export class LunoController {
     }
   }
 
+  /** Current workspace fingerprint — same derivation as the remote bridge's
+   *  workspaceInfo(), so session stamps and device bindings compare equal. */
+  workspaceStamp(): { name: string; hash: string } | undefined {
+    const folder = vscode.workspace.workspaceFolders?.[0];
+    if (!folder) return undefined;
+    return {
+      name: folder.name,
+      hash: crypto.createHash("sha256").update(folder.uri.fsPath).digest("hex"),
+    };
+  }
+
+  /** Whether a stored session belongs to the CURRENT workspace. Used by the
+   *  remote bridge to stop project-scoped devices from loading/deleting/
+   *  renaming chats of other projects. Un-stamped (pre-migration) sessions
+   *  count as foreign — fail closed. */
+  isSessionInWorkspace(sessionId: string): boolean {
+    const hash = this.workspaceStamp()?.hash;
+    if (!hash) return false;
+    return this.sessions.get(sessionId)?.workspaceHash === hash;
+  }
+
   private setConn(conn: ConnState): void {
+    // Manage the retry loop on EVERY call, not only on state changes — a
+    // repeat "offline" (refreshModels failed again) must keep the loop armed.
+    if (conn === "offline") this.scheduleConnRetry();
+    else this.clearConnRetry();
     if (this.conn === conn) return;
     this.conn = conn;
     this.broadcast({ type: "conn", conn });
+  }
+
+  /**
+   * "Gateway offline" used to be sticky: one transient network error (stream
+   * drop, DNS blip, gateway restart) flipped conn to offline and NOTHING
+   * retried — the UI said "no connection" until the user manually hit
+   * test/reload or sent a message. Retry listModels on a backoff (5s → 60s
+   * cap) until the gateway answers again; refreshModels() itself calls
+   * setConn, so recovery clears the loop and failure re-arms it.
+   */
+  private scheduleConnRetry(): void {
+    if (this.connRetryTimer) return; // already armed
+    const delay = this.connRetryMs;
+    this.connRetryMs = Math.min(this.connRetryMs * 2, 60_000);
+    this.connRetryTimer = setTimeout(() => {
+      this.connRetryTimer = undefined;
+      void this.refreshModels();
+    }, delay);
+    this.connRetryTimer.unref?.();
+  }
+
+  private clearConnRetry(): void {
+    if (this.connRetryTimer) {
+      clearTimeout(this.connRetryTimer);
+      this.connRetryTimer = undefined;
+    }
+    this.connRetryMs = 5_000;
   }
 }
 

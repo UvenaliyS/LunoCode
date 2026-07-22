@@ -2,7 +2,7 @@
   "name": "codes",
   "displayName": "Luno Code: AI Coding Agent, Chat & Remote Control",
   "description": "AI coding agent for VS Code: generates code from natural language, runs terminal commands, and edits multi-file projects behind an approval gate you control. Chat & Agent modes, image/PDF/file attachments, SSH remote execution, and a Telegram mini-app to drive the agent from your phone. Powered by Claude, GPT & Gemini on one flat-rate key.",
-  "version": "1.8.1",
+  "version": "1.8.2",
   "license": "MIT",
   "publisher": "luno",
   "author": {

@@ -37,6 +37,15 @@ const DEVICES_KEY = "luno.remote.devices";
 
 const BACKOFF_MIN_MS = 1_000;
 const BACKOFF_MAX_MS = 60_000;
+// Liveness: the relay protocol-pings every 30s, and we ping it every 25s. If
+// NOTHING (frame/ping/pong) arrives for 75s — 2 missed server pings + margin —
+// the socket is a zombie (silent TCP death after laptop sleep / network
+// switch / a proxy drop) and must be cycled. Without this the socket stayed
+// "OPEN" for many minutes while the relay had long marked us offline, so
+// phones showed "PC offline" and the extension never noticed.
+const PING_INTERVAL_MS = 25_000;
+const LIVENESS_TIMEOUT_MS = 75_000;
+const LIVENESS_SWEEP_MS = 15_000;
 
 export class RemoteBridge implements RemoteBridgeLike {
   private ws?: WebSocket;
@@ -52,6 +61,10 @@ export class RemoteBridge implements RemoteBridgeLike {
   private pairingTimer?: NodeJS.Timeout;
   /** Shown once per hard auth failure so reconnect loops don't spam. */
   private warnedBadKey = false;
+  /** Timestamp of the last frame/ping/pong from the relay (liveness). */
+  private lastActivityAt = 0;
+  private pingTimer?: NodeJS.Timeout;
+  private livenessTimer?: NodeJS.Timeout;
 
   constructor(
     private readonly context: vscode.ExtensionContext,
@@ -164,8 +177,10 @@ export class RemoteBridge implements RemoteBridgeLike {
     }
     this.ws = ws;
     this.connectedUrl = this.serverUrl();
+    this.lastActivityAt = Date.now();
 
     ws.on("open", () => {
+      this.lastActivityAt = Date.now();
       this.sendFrame({
         v: 1,
         kind: "hello",
@@ -174,12 +189,19 @@ export class RemoteBridge implements RemoteBridgeLike {
         key,
         workspace: this.workspaceInfo(),
       });
+      this.startKeepalive(ws);
     });
 
     ws.on("message", (raw) => {
+      this.lastActivityAt = Date.now();
       const frame = parseRelayFrame(raw.toString());
       if (frame) this.onFrame(frame);
     });
+
+    // Relay protocol-pings us every 30s (ws lib answers pongs automatically);
+    // both directions count as proof of life.
+    ws.on("ping", () => (this.lastActivityAt = Date.now()));
+    ws.on("pong", () => (this.lastActivityAt = Date.now()));
 
     const onGone = () => {
       if (this.ws !== ws) return; // an old socket's death, not ours
@@ -191,7 +213,49 @@ export class RemoteBridge implements RemoteBridgeLike {
     ws.on("error", onGone);
   }
 
+  /**
+   * Client-side keepalive + zombie watchdog for THIS socket.
+   *
+   * Keepalive: a protocol ping every 25s keeps bytes flowing in both
+   * directions, which matters behind Cloudflare — CF kills proxied WebSockets
+   * after ~100s without traffic, and one direction being chatty is not enough.
+   *
+   * Watchdog: if nothing has arrived for LIVENESS_TIMEOUT_MS the connection is
+   * half-dead (TCP never errored — laptop sleep, Wi-Fi switch, CF drop with
+   * lost FIN). terminate() forces the 'close' event, which drives the normal
+   * reconnect path. Timers are per-socket and die with it in teardownSocket.
+   */
+  private startKeepalive(ws: WebSocket): void {
+    this.stopKeepalive();
+    this.pingTimer = setInterval(() => {
+      if (this.ws !== ws) return;
+      try {
+        ws.ping();
+      } catch {
+        /* socket already closing */
+      }
+    }, PING_INTERVAL_MS);
+    this.livenessTimer = setInterval(() => {
+      if (this.ws !== ws) return;
+      if (Date.now() - this.lastActivityAt > LIVENESS_TIMEOUT_MS) {
+        try {
+          ws.terminate(); // fires 'close' → teardown + reconnect
+        } catch {
+          /* already dead */
+        }
+      }
+    }, LIVENESS_SWEEP_MS);
+  }
+
+  private stopKeepalive(): void {
+    if (this.pingTimer) clearInterval(this.pingTimer);
+    if (this.livenessTimer) clearInterval(this.livenessTimer);
+    this.pingTimer = undefined;
+    this.livenessTimer = undefined;
+  }
+
   private teardownSocket(intentional: boolean): void {
+    this.stopKeepalive();
     this.detach?.();
     this.detach = undefined;
     this.helloOk = false;
@@ -230,6 +294,76 @@ export class RemoteBridge implements RemoteBridgeLike {
     this.sendFrame({ v: 1, kind: "e2w", to, payload });
   }
 
+  /**
+   * Controller broadcast → phones. Messages carrying cross-project data
+   * (full state / session lists) are re-sent PER DEVICE via `toDevice`, each
+   * copy filtered to that device's scope — a project-paired phone never even
+   * receives other projects' chat titles. Everything else (chunks, steps,
+   * approvals of the live turn) fans out verbatim.
+   */
+  private mirrorToPhones(msg: ExtensionToWebview): void {
+    if (msg.type !== "state" && msg.type !== "sessions") {
+      this.sendE2W(msg);
+      return;
+    }
+    const devices = this.devices();
+    if (devices.length === 0) return; // nobody paired — nothing to mirror
+    if (devices.every((d) => d.scope === "system")) {
+      this.sendE2W(msg); // no filtering needed — one fan-out frame
+      return;
+    }
+    for (const device of devices) {
+      this.sendFrame({
+        v: 1,
+        kind: "e2w",
+        toDevice: device.id,
+        payload: this.filterForDevice(msg, device),
+      });
+    }
+  }
+
+  /** Scope filter for one device. System scope sees everything; project scope
+   *  sees only sessions stamped with ITS workspace, and no live chat at all
+   *  when the PC currently has a different project open. */
+  private filterForDevice(
+    msg: ExtensionToWebview,
+    device: RemoteDevice,
+  ): ExtensionToWebview {
+    if (device.scope === "system") return msg;
+    const hash = device.workspaceHash;
+
+    if (msg.type === "sessions") {
+      return {
+        ...msg,
+        sessions: msg.sessions.filter(
+          (s) => s.workspaceHash && s.workspaceHash === hash,
+        ),
+      };
+    }
+    if (msg.type === "state") {
+      const sessions = (msg.state.sessions ?? []).filter(
+        (s) => s.workspaceHash && s.workspaceHash === hash,
+      );
+      if (!hash || hash !== this.workspaceInfo()?.hash) {
+        // Paired to a different project than the one open on the PC — the
+        // live chat/draft is not theirs to see. Interaction is already
+        // rejected by remotePolicy with a clear reason.
+        return {
+          ...msg,
+          state: {
+            ...msg.state,
+            messages: [],
+            sessions,
+            activeSessionId: undefined,
+            draft: undefined,
+          },
+        };
+      }
+      return { ...msg, state: { ...msg.state, sessions } };
+    }
+    return msg;
+  }
+
   private onFrame(frame: RelayFrame): void {
     switch (frame.kind) {
       case "helloOk":
@@ -237,9 +371,10 @@ export class RemoteBridge implements RemoteBridgeLike {
         this.backoffMs = BACKOFF_MIN_MS;
         this.warnedBadKey = false;
         // THE key line: register as a poster — every controller broadcast now
-        // mirrors to the phones. attach() also pushes a state snapshot.
+        // mirrors to the phones (scope-filtered per device where needed).
+        // attach() also pushes a state snapshot.
         this.detach?.();
-        this.detach = this.controller.attach((msg) => this.sendE2W(msg));
+        this.detach = this.controller.attach((msg) => this.mirrorToPhones(msg));
         // Reconcile: revokes done while offline never reached the relay — our
         // mirror is the source of truth, so the server prunes everything else.
         this.sendFrame({
@@ -305,10 +440,20 @@ export class RemoteBridge implements RemoteBridgeLike {
         break;
       }
 
-      case "resync":
-        // A phone (re)joined — give it the same snapshot a fresh webview gets.
-        this.controller.resyncPoster((msg) => this.sendE2W(msg, frame.to));
+      case "resync": {
+        // A phone (re)joined — give it the same snapshot a fresh webview gets,
+        // filtered for the device's scope. The relay stamps deviceId on resync
+        // frames; if it's absent (old relay) fail CLOSED with a synthetic
+        // project-scoped device, which strips everything cross-project.
+        const device =
+          (frame.deviceId
+            ? this.devices().find((d) => d.id === frame.deviceId)
+            : undefined) ?? ({ scope: "project" } as RemoteDevice);
+        this.controller.resyncPoster((msg) =>
+          this.sendE2W(this.filterForDevice(msg, device), frame.to),
+        );
         break;
+      }
 
       case "w2e":
         this.onRemoteMessage(frame);
@@ -337,10 +482,30 @@ export class RemoteBridge implements RemoteBridgeLike {
       this.sendE2W({ type: "error", message: verdict.reason }, frame.from);
       return;
     }
+    // Project scope: chats of other projects are invisible AND untouchable —
+    // the mirror filters them out of lists, and this guard stops direct-id
+    // loads/deletes/renames (an id could be remembered from before a revoke).
+    if (
+      device.scope === "project" &&
+      (payload.type === "loadSession" ||
+        payload.type === "deleteSession" ||
+        payload.type === "renameSession") &&
+      !this.controller.isSessionInWorkspace(payload.id)
+    ) {
+      this.sendE2W(
+        { type: "error", message: "This chat belongs to another project." },
+        frame.from,
+      );
+      return;
+    }
     // Touch lastSeenAt lazily (no await — best effort, UI-only field).
     device.lastSeenAt = Date.now();
     void this.saveDevices(this.devices().map((d) => (d.id === device.id ? device : d)));
-    void this.controller.handle(payload);
+    void this.controller.handle(payload, {
+      kind: "remote",
+      scope: device.scope,
+      deviceId: device.id,
+    });
   }
 
   // --- RemoteBridgeLike (settings tab surface) -----------------------------------

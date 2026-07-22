@@ -43,6 +43,8 @@ export class SessionStore {
         model: s.model,
         messageCount: s.messages.length,
         preview: firstPrompt(s.messages),
+        workspaceHash: s.workspaceHash,
+        workspaceName: s.workspaceName,
       }));
   }
 
@@ -59,6 +61,7 @@ export class SessionStore {
     id: string | undefined,
     messages: ChatMessage[],
     model: string | undefined,
+    workspace?: { name: string; hash: string },
   ): Promise<string | undefined> {
     const persistable = messages.filter((m) => m.role !== "system" && !m.streaming);
     if (persistable.length === 0) return id;
@@ -72,6 +75,12 @@ export class SessionStore {
         existing.messages = persistable;
         existing.model = model;
         existing.updatedAt = now;
+        // Backfill the workspace stamp on old sessions as they're touched, so
+        // they become visible to project-scoped remote devices again.
+        if (workspace && !existing.workspaceHash) {
+          existing.workspaceHash = workspace.hash;
+          existing.workspaceName = workspace.name;
+        }
         // Keep an auto-title fresh until the user renames it.
         if (!existing.titleEdited) existing.title = autoTitle(persistable);
         await this.writeAll(sessions);
@@ -86,6 +95,8 @@ export class SessionStore {
       createdAt: now,
       updatedAt: now,
       model,
+      workspaceHash: workspace?.hash,
+      workspaceName: workspace?.name,
       messages: persistable,
     });
     await this.writeAll(sessions);

@@ -396,6 +396,11 @@ export interface ChatSession {
   model?: string;
   /** True once the user renamed it, so auto-titling stops overwriting. */
   titleEdited?: boolean;
+  /** Workspace the session was created in — sessions live in globalState
+   *  (cross-project), so project-scoped remote devices are only shown
+   *  sessions whose hash matches their paired workspace. */
+  workspaceHash?: string;
+  workspaceName?: string;
   messages: ChatMessage[];
 }
 
@@ -410,6 +415,10 @@ export interface ChatSessionMeta {
   messageCount: number;
   /** First user prompt, truncated, for a preview line. */
   preview: string;
+  /** Workspace stamp (see ChatSession) — used to filter session lists for
+   *  project-scoped remote devices before they leave the PC. */
+  workspaceHash?: string;
+  workspaceName?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -890,6 +899,9 @@ export interface WebviewState {
   /** Composer draft for the ACTIVE chat (text + attachments + context) —
    *  restored on chat switch and across VS Code restarts. */
   draft?: ComposerDraft;
+  /** List of chat sessions (for tabs) — the webview contract copies already
+   *  declare this; keep the shared type in sync so scope filtering can see it. */
+  sessions?: ChatSessionMeta[];
   /** SSH servers (metadata only), for the SSH settings tab. */
   sshServers?: SshServerMeta[];
 }

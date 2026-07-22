@@ -11,10 +11,28 @@ import type {
 import { MUTATING_TOOLS } from "./types";
 
 /**
+ * Commands that must ALWAYS stop at the approval gate, no matter what —
+ * "auto" mode, sshCommands/runCommands toggles and the allow-list are all
+ * overridden. These change or lock account credentials: an unattended `passwd`
+ * over SSH can cut the user off from their own server with no way back.
+ * Matched as standalone words so `/etc/passwd`, `passwd.txt` etc. don't trip
+ * it; `sudo passwd`, pipes and `&&` chains do.
+ */
+const ALWAYS_CONFIRM_RE =
+  /(^|[\s;|&(`"'])(passwd|chpasswd|vipw|usermod|userdel|deluser|chage)(?=$|[\s;|&)`"'])/i;
+
+/** True when a shell/SSH command contains a credential-changing command that
+ *  requires an explicit human tap regardless of auto-approve settings. */
+export function requiresManualApproval(command: string): boolean {
+  return ALWAYS_CONFIRM_RE.test(command);
+}
+
+/**
  * Decide whether a mutating tool call may skip the approval gate. Pure so it can
  * be unit-tested. `approvalMode === "auto"` approves everything; otherwise each
  * tool consults its own auto-approve flag, and runCommand additionally matches
- * the command against the allow-list of trusted prefixes.
+ * the command against the allow-list of trusted prefixes. Credential-changing
+ * commands (see requiresManualApproval) never auto-approve, in ANY mode.
  */
 export function shouldAutoApprove(
   name: ToolName,
@@ -22,6 +40,10 @@ export function shouldAutoApprove(
   approvalMode: ApprovalMode,
   cfg: AutoApproveSettings,
 ): boolean {
+  // The always-confirm check outranks everything, including "auto" mode.
+  if (name === "Bash" || name === "runCommand" || name === "sshExec") {
+    if (requiresManualApproval(String(input.command ?? ""))) return false;
+  }
   if (approvalMode === "auto") return true;
   switch (name) {
     // CC names:

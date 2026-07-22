@@ -74,3 +74,17 @@ export {
   RELAY_CLOSE_BAD_KEY,
   PAIR_QR_PREFIX,
 } from "@luno/shared/src/relay";
+
+import type { RemoteScope } from "@luno/shared";
+
+/**
+ * Where a webview message came from. Local webviews are fully trusted; remote
+ * (phone) messages carry the paired device's scope so the controller can
+ * harden the agent for project-scoped devices — scope must constrain the
+ * AGENT (tools, approvals, sessions), not merely which message types pass.
+ */
+export type PromptOrigin =
+  | { kind: "local" }
+  | { kind: "remote"; scope: RemoteScope; deviceId: string };
+
+export const LOCAL_ORIGIN: PromptOrigin = { kind: "local" };
