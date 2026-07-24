@@ -380,7 +380,7 @@ const en = {
     links: "Links",
     website: "Website",
     repo: "Source code",
-    license: "Apache-2.0 License",
+    license: "License",
   },
 };
 
@@ -760,7 +760,7 @@ const ru: Dict = {
     links: "Ссылки",
     website: "Сайт",
     repo: "Исходный код",
-    license: "Лицензия Apache-2.0",
+    license: "Лицензия",
   },
 };
 

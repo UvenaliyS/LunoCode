@@ -35,7 +35,7 @@ const FORMATS: ProviderFormat[] = ["claude-code", "codex", "openai-v1"];
 /* ── Glyphs ──────────────────────────────────────────────────────────────── */
 
 /* Drop-in SVG logos: put `<glyph>.svg` into src/settings/provider-icons/
- * (anthropic.svg, openai.svg, google.svg, xai.svg, openrouter.svg, groq.svg,
+ * (anthropic.svg, openai.svg, google.svg, azure.svg, xai.svg, openrouter.svg, groq.svg,
  * mistral.svg, deepseek.svg, ollama.svg, lmstudio.svg, generic.svg) and it
  * overrides the built-in fallback automatically — no code changes needed.
  * NOTE: must stay a literal `import.meta.glob(...)` call — Vite's transform
@@ -77,6 +77,21 @@ function Glyph({ glyph, size = 16 }: { glyph: CatalogGlyph; size?: number }) {
       return <GeminiIcon size={size} />;
     case "xai":
       return <GrokIcon size={size} />;
+    case "azure":
+      return (
+        <img
+          className="prov-svg"
+          width={size}
+          height={size}
+          src={`${
+            (globalThis as typeof globalThis & {
+              __LUNO_MODEL_ASSETS__?: string;
+            }).__LUNO_MODEL_ASSETS__ ?? "models/"
+          }azure.svg`}
+          alt=""
+          aria-hidden="true"
+        />
+      );
     case "ollama":
     case "lmstudio":
       return <Desktop size={size} />;

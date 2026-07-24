@@ -1,4 +1,4 @@
-import { useId, type ComponentType } from "react";
+import { useId, useState, type ComponentType } from "react";
 import type { ModelInfo } from "../contracts";
 
 interface IconProps {
@@ -71,6 +71,31 @@ export function GenericModelIcon({ size = 16, className }: IconProps) {
   );
 }
 
+function VendorIcon({
+  size = 16,
+  className,
+  mark,
+  color,
+}: IconProps & { mark: string; color: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" fill={color} />
+      <text x="12" y="15.5" textAnchor="middle" fill="#fff" fontSize="10" fontWeight="700" fontFamily="Arial, sans-serif">
+        {mark}
+      </text>
+    </svg>
+  );
+}
+
+const GrokIcon = (p: IconProps) => <VendorIcon {...p} mark="X" color="#18181b" />;
+const DeepSeekIcon = (p: IconProps) => <VendorIcon {...p} mark="DS" color="#4d6bfe" />;
+const KimiIcon = (p: IconProps) => <VendorIcon {...p} mark="K" color="#16181d" />;
+const MistralIcon = (p: IconProps) => <VendorIcon {...p} mark="M" color="#f97316" />;
+const MetaIcon = (p: IconProps) => <VendorIcon {...p} mark="∞" color="#0866ff" />;
+const MicrosoftIcon = (p: IconProps) => <VendorIcon {...p} mark="MS" color="#107c10" />;
+const QwenIcon = (p: IconProps) => <VendorIcon {...p} mark="Q" color="#615ced" />;
+const CohereIcon = (p: IconProps) => <VendorIcon {...p} mark="C" color="#39594d" />;
+
 export interface Brand {
   key: string;
   label: string;
@@ -78,12 +103,108 @@ export interface Brand {
   order: number;
 }
 
+function assetIcon(file: string, Fallback: ComponentType<IconProps>) {
+  return function ModelAssetIcon({ size = 16, className }: IconProps) {
+    const [failed, setFailed] = useState(false);
+    if (failed) return <Fallback size={size} className={className} />;
+    const base =
+      (globalThis as typeof globalThis & {
+        __LUNO_MODEL_ASSETS__?: string;
+      }).__LUNO_MODEL_ASSETS__ ?? "models/";
+    return (
+      <img
+        src={`${base}${file}.svg`}
+        width={size}
+        height={size}
+        className={className}
+        alt=""
+        aria-hidden="true"
+        onError={() => setFailed(true)}
+      />
+    );
+  };
+}
+
+const ModelIcons = {
+  openai: assetIcon("openai", OpenAIIcon),
+  google: assetIcon("gemini", GeminiIcon),
+  anthropic: assetIcon("claude", ClaudeIcon),
+  xai: assetIcon("grok", GrokIcon),
+  deepseek: assetIcon("deepseek", DeepSeekIcon),
+  kimi: assetIcon("kimi", KimiIcon),
+  mistral: assetIcon("mistral", MistralIcon),
+  meta: assetIcon("llama", MetaIcon),
+  microsoft: assetIcon("microsoft", MicrosoftIcon),
+  qwen: assetIcon("qwen", QwenIcon),
+  cohere: assetIcon("cohere", CohereIcon),
+  perplexity: assetIcon("perplexity", GenericModelIcon),
+  amazon: assetIcon("amazon", GenericModelIcon),
+  nvidia: assetIcon("nvidia", GenericModelIcon),
+  zhipu: assetIcon("zhipu", GenericModelIcon),
+  minimax: assetIcon("minimax", GenericModelIcon),
+  gemma: assetIcon("gemma", GenericModelIcon),
+  ibm: assetIcon("ibm", GenericModelIcon),
+  ai21: assetIcon("ai21", GenericModelIcon),
+  yi: assetIcon("yi", GenericModelIcon),
+  baichuan: assetIcon("baichuan", GenericModelIcon),
+  falcon: assetIcon("falcon", GenericModelIcon),
+  databricks: assetIcon("databricks", GenericModelIcon),
+  nous: assetIcon("nous", GenericModelIcon),
+  liquid: assetIcon("liquid", GenericModelIcon),
+  tencent: assetIcon("tencent", GenericModelIcon),
+  baidu: assetIcon("baidu", GenericModelIcon),
+  bytedance: assetIcon("bytedance", GenericModelIcon),
+  stepfun: assetIcon("stepfun", GenericModelIcon),
+  reka: assetIcon("reka", GenericModelIcon),
+  cerebras: assetIcon("cerebras", GenericModelIcon),
+  internlm: assetIcon("internlm", GenericModelIcon),
+  upstage: assetIcon("upstage", GenericModelIcon),
+  lg: assetIcon("lg", GenericModelIcon),
+  huggingface: assetIcon("huggingface", GenericModelIcon),
+  stability: assetIcon("stability", GenericModelIcon),
+  azure: assetIcon("azure", GenericModelIcon),
+};
+
 /** Infer the provider brand from a model's id/label (gateway models all report
  *  providerId "luno", so we sniff the name instead). Drives the icon + grouping. */
 export function modelBrand(m: ModelInfo): Brand {
   const s = `${m.id} ${m.label}`.toLowerCase();
-  if (/(gpt|openai|o1|o3)/.test(s)) return { key: "openai", label: "OpenAI", Icon: OpenAIIcon, order: 1 };
-  if (/(gemini|google|palm)/.test(s)) return { key: "google", label: "Google", Icon: GeminiIcon, order: 2 };
-  if (/(claude|opus|sonnet|haiku|fable|anthropic)/.test(s)) return { key: "anthropic", label: "Anthropic", Icon: ClaudeIcon, order: 0 };
-  return { key: "other", label: "Other", Icon: GenericModelIcon, order: 3 };
+  if (/(azure|microsoft[.\s/_-]*foundry)/.test(s)) return { key: "azure", label: "Azure AI", Icon: ModelIcons.azure, order: 11 };
+  if (/(perplexity|sonar(?:[\s_-]|$))/i.test(s)) return { key: "perplexity", label: "Perplexity", Icon: ModelIcons.perplexity, order: 11 };
+  if (/(amazon[.\s/_-]*nova|nova[-_. ]?(?:micro|lite|pro|premier|sonic)|amazon[.\s/_-]*titan)/.test(s)) return { key: "amazon", label: "Amazon", Icon: ModelIcons.amazon, order: 12 };
+  if (/(nemotron|nvidia)/.test(s)) return { key: "nvidia", label: "NVIDIA", Icon: ModelIcons.nvidia, order: 13 };
+  if (/(chatglm|glm[-_. ]?\d|zhipu|z\.ai)/.test(s)) return { key: "zhipu", label: "Zhipu AI", Icon: ModelIcons.zhipu, order: 14 };
+  if (/minimax|abab[-_. ]?\d/.test(s)) return { key: "minimax", label: "MiniMax", Icon: ModelIcons.minimax, order: 15 };
+  if (/(^|[\s/_.-])gemma(?:[\s/_.-]|$)/.test(s)) return { key: "gemma", label: "Google Gemma", Icon: ModelIcons.gemma, order: 16 };
+  if (/(granite|ibm)/.test(s)) return { key: "ibm", label: "IBM", Icon: ModelIcons.ibm, order: 17 };
+  if (/(jamba|jurassic|ai21)/.test(s)) return { key: "ai21", label: "AI21 Labs", Icon: ModelIcons.ai21, order: 18 };
+  if (/(^|[\s/_.-])yi(?:[\s/_.-]|\d|$)|01[\s_-]?ai/.test(s)) return { key: "yi", label: "01.AI", Icon: ModelIcons.yi, order: 19 };
+  if (/baichuan/.test(s)) return { key: "baichuan", label: "Baichuan", Icon: ModelIcons.baichuan, order: 20 };
+  if (/(falcon|tiiuae)/.test(s)) return { key: "falcon", label: "Falcon", Icon: ModelIcons.falcon, order: 21 };
+  if (/(dbrx|databricks)/.test(s)) return { key: "databricks", label: "Databricks", Icon: ModelIcons.databricks, order: 22 };
+  if (/(hermes|nousresearch|nous)/.test(s)) return { key: "nous", label: "Nous Research", Icon: ModelIcons.nous, order: 23 };
+  if (/(liquid|lfm[-_. ]?\d)/.test(s)) return { key: "liquid", label: "Liquid AI", Icon: ModelIcons.liquid, order: 24 };
+  if (/(hunyuan|tencent)/.test(s)) return { key: "tencent", label: "Tencent", Icon: ModelIcons.tencent, order: 25 };
+  if (/(ernie|wenxin|baidu)/.test(s)) return { key: "baidu", label: "Baidu", Icon: ModelIcons.baidu, order: 26 };
+  if (/(doubao|seed[-_. ]?\d|bytedance|byte[-_. ]?dance)/.test(s)) return { key: "bytedance", label: "ByteDance", Icon: ModelIcons.bytedance, order: 27 };
+  if (/(stepfun|step[-_. ]?\d)/.test(s)) return { key: "stepfun", label: "StepFun", Icon: ModelIcons.stepfun, order: 28 };
+  if (/(reka(?:[\s/_.-]|$))/i.test(s)) return { key: "reka", label: "Reka AI", Icon: ModelIcons.reka, order: 29 };
+  if (/(cerebras|zai[-_. ]?glm)/.test(s)) return { key: "cerebras", label: "Cerebras", Icon: ModelIcons.cerebras, order: 30 };
+  if (/(internlm|internvl|上海人工智能实验室)/.test(s)) return { key: "internlm", label: "InternLM", Icon: ModelIcons.internlm, order: 31 };
+  if (/(solar[-_. ]?(?:mini|pro)|upstage)/.test(s)) return { key: "upstage", label: "Upstage", Icon: ModelIcons.upstage, order: 32 };
+  if (/(exaone|lg[-_. ]?ai)/.test(s)) return { key: "lg", label: "LG AI", Icon: ModelIcons.lg, order: 33 };
+  if (/(bloomz?|smollm|bigscience)/.test(s)) return { key: "huggingface", label: "Hugging Face", Icon: ModelIcons.huggingface, order: 34 };
+  if (/(stablelm|stability[-_. ]?ai)/.test(s)) return { key: "stability", label: "Stability AI", Icon: ModelIcons.stability, order: 35 };
+  if (/(gpt|openai|codex|davinci)|(^|\s)o\d/.test(s)) return { key: "openai", label: "OpenAI", Icon: ModelIcons.openai, order: 1 };
+  if (/(gemini|google|palm)/.test(s)) return { key: "google", label: "Google", Icon: ModelIcons.google, order: 2 };
+  if (/(claude|opus|sonnet|haiku|fable|anthropic)/.test(s)) return { key: "anthropic", label: "Anthropic", Icon: ModelIcons.anthropic, order: 0 };
+  if (/(grok|xai)/.test(s)) return { key: "xai", label: "xAI", Icon: ModelIcons.xai, order: 3 };
+  if (/deepseek/.test(s)) return { key: "deepseek", label: "DeepSeek", Icon: ModelIcons.deepseek, order: 4 };
+  if (/(kimi|moonshot)/.test(s)) return { key: "kimi", label: "Kimi", Icon: ModelIcons.kimi, order: 5 };
+  if (/(mistral|mixtral|ministral)/.test(s)) return { key: "mistral", label: "Mistral", Icon: ModelIcons.mistral, order: 6 };
+  if (/(llama|meta)/.test(s)) return { key: "meta", label: "Meta", Icon: ModelIcons.meta, order: 7 };
+  if (/(phi|mai-|microsoft)/.test(s)) return { key: "microsoft", label: "Microsoft", Icon: ModelIcons.microsoft, order: 8 };
+  if (/qwen/.test(s)) return { key: "qwen", label: "Qwen", Icon: ModelIcons.qwen, order: 9 };
+  if (/(cohere|command-r)/.test(s)) return { key: "cohere", label: "Cohere", Icon: ModelIcons.cohere, order: 10 };
+  return { key: "other", label: "Other", Icon: GenericModelIcon, order: 20 };
 }

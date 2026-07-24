@@ -15,6 +15,7 @@ export function buildWebviewHtml(
   const base = vscode.Uri.joinPath(extensionUri, "dist", "webview");
   const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(base, "index.js"));
   const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(base, "index.css"));
+  const modelAssetsUri = webview.asWebviewUri(vscode.Uri.joinPath(base, "models"));
   const nonce = makeNonce();
   const csp = [
     `default-src 'none'`,
@@ -36,7 +37,7 @@ export function buildWebviewHtml(
 </head>
 <body>
   <div id="root"></div>
-  <script nonce="${nonce}">window.__LUNO_VIEW__ = ${JSON.stringify(view)};window.__LUNO_SETTINGS_TAB__ = ${JSON.stringify(settingsTab)};window.__LUNO_LOCKED__ = ${JSON.stringify(!!locked)};</script>
+  <script nonce="${nonce}">window.__LUNO_VIEW__ = ${JSON.stringify(view)};window.__LUNO_SETTINGS_TAB__ = ${JSON.stringify(settingsTab)};window.__LUNO_LOCKED__ = ${JSON.stringify(!!locked)};window.__LUNO_MODEL_ASSETS__ = ${JSON.stringify(`${modelAssetsUri.toString()}/`)};</script>
   <script nonce="${nonce}" src="${scriptUri}"></script>
 </body>
 </html>`;

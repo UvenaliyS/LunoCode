@@ -155,7 +155,12 @@ export class LunoController {
     return {
       authed: this.auth.isAuthed,
       plan: this.auth.currentPlan,
-      models: this.models,
+      models: this.models.map((model) => ({
+        ...model,
+        hidden: settings.hiddenModels.includes(
+          `${model.providerId || "luno"}/${model.id}`,
+        ),
+      })),
       providers: this.providers,
       selectedModel: this.selectedModel,
       messages: this.messages,
@@ -163,6 +168,9 @@ export class LunoController {
       nonLogging: this.nonLogging,
       conn: this.conn,
       settings,
+      extensionVersion:
+        vscode.extensions.getExtension("luno.codes")?.packageJSON?.version ??
+        "unknown",
       account: this.auth.account,
       profile: this.auth.profile,
       activeSessionId: this.activeSessionId,
@@ -252,6 +260,12 @@ export class LunoController {
         );
         if (msg.key === "gatewayUrl") {
           this.gateway.setBaseUrl(String(msg.value));
+        }
+        if (
+          msg.key === "gatewayUrl" ||
+          msg.key === "hiddenModels" ||
+          msg.key === "customModels"
+        ) {
           await this.refreshModels();
         }
         this.pushState();
@@ -1199,10 +1213,35 @@ export class LunoController {
       }
     }
 
+    // User-added entries can point at any configured provider; Luno is the
+    // default when only a name and id were supplied.
+    for (const custom of readSettings().customModels ?? []) {
+      const id = custom.id.trim();
+      const label = custom.label.trim();
+      if (!id || !label) continue;
+      const providerId = custom.providerId || "luno";
+      const existing = all.findIndex(
+        (m) => m.id === id && (m.providerId || "luno") === providerId,
+      );
+      const model: ModelInfo = {
+        id,
+        label,
+        sonnetEq: 1,
+        providerId,
+        brand: inferModelBrand(`${id} ${label}`),
+      };
+      if (existing >= 0) all[existing] = { ...all[existing], ...model };
+      else all.push(model);
+    }
+
     this.models = all;
     this.nonLogging = nonLogging;
-    if (!all.find((m) => m.id === this.selectedModel) && all[0]) {
-      this.selectedModel = all[0].id;
+    const hidden = new Set(readSettings().hiddenModels ?? []);
+    const visible = all.filter(
+      (m) => !hidden.has(`${m.providerId || "luno"}/${m.id}`),
+    );
+    if (!visible.find((m) => m.id === this.selectedModel) && visible[0]) {
+      this.selectedModel = visible[0].id;
     }
     this.setConn(anyOnline ? "online" : "offline");
     this.pushState();

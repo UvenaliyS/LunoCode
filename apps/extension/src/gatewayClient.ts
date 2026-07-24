@@ -391,23 +391,26 @@ export class GatewayClient {
         nonLogging?: boolean;
       };
       const entries = raw.models ?? raw.data ?? [];
-      return {
-        models: entries
+      const models = dedupeAndSortModels(entries
           .filter((m) => typeof m?.id === "string")
           // Drop reasoning-effort variants the gateway advertises as separate
           // ids (…-low/-medium/-high/-xhigh/-max). Effort is a per-request knob
           // the picker adds; listing them as models just clutters the menu with
           // near-duplicates.
           .filter((m) => !isEffortVariant(m.id))
-          .map((m) => ({
-            id: m.id,
-            label: (m as ModelInfo).label ?? prettyModelLabel(m.id),
-            sonnetEq: (m as ModelInfo).sonnetEq ?? sonnetEqOf(m.id),
+          .map((m) => {
+            const id = canonicalModelId(m.id);
+            return {
+            id,
+            label: (m as ModelInfo).label ?? prettyModelLabel(id),
+            sonnetEq: (m as ModelInfo).sonnetEq ?? sonnetEqOf(id),
             providerId: target.id,
-            brand: inferModelBrand(m.id),
+            brand: inferModelBrand(id),
             // Informational: the luno gateway serves the Claude Code environment.
             format: "claude-code" as const,
-          })),
+          }}));
+      return {
+        models,
         // The Luno gateway's own no-logging policy; not claimed for others.
         nonLogging: raw.nonLogging ?? true,
       };
@@ -420,17 +423,27 @@ export class GatewayClient {
       models?: { id: string; display_name?: string; label?: string }[];
     };
     const entries = raw.data ?? raw.models ?? [];
-    const models: ModelInfo[] = entries
+    const normalizeIds = isMicrosoftFoundryEndpoint(target.endpoint);
+    const models: ModelInfo[] = dedupeAndSortModels(entries
       .filter((m) => typeof m?.id === "string")
-      .map((m) => ({
-        id: m.id,
+      // Foundry's data-plane /models is a broad catalogue, not a list of
+      // deployments. It currently advertises synthetic/unreleased Claude ids
+      // (for example Fable 5 and Sonnet 5.2) that always 404 at inference.
+      // Keep them out of the picker; real custom deployment names can still be
+      // added explicitly in Settings → Models.
+      .filter((m) => !isBogusFoundryClaudeId(m.id))
+      .map((m) => {
+        const id = normalizeIds ? canonicalModelId(m.id) : m.id;
+        return {
+        id,
         // Prefer a server-supplied display name; otherwise prettify the id so
         // custom providers don't show raw "claude-opus-4-8" / "gpt-5.5".
-        label: m.display_name ?? m.label ?? prettyModelLabel(m.id),
+        label: m.display_name ?? m.label ?? prettyModelLabel(id),
         sonnetEq: 1, // custom endpoints don't report cost weights
         providerId: target.id,
-        brand: inferModelBrand(m.id),
-        format: formatFor?.(m.id) ?? target.format,
+        brand: inferModelBrand(id),
+        format: formatFor?.(id) ?? target.format,
+      };
       }));
     // Only the Luno gateway can guarantee non-logging; never claim it for
     // arbitrary endpoints.
@@ -450,6 +463,9 @@ export class GatewayClient {
     const headers = targetHeaders(target);
     if (target.kind === "luno") {
       return fetch(`${vbaseOf(target)}/models`, { headers, signal });
+    }
+    if (isMicrosoftFoundryEndpoint(target.endpoint)) {
+      return fetch(foundryModelsUrl(target), { headers, signal });
     }
     const vurl = `${vbaseOf(target)}/models`;
     const plain = `${baseOf(target)}/models`;
@@ -613,7 +629,7 @@ export class GatewayClient {
     if (body.system) payload.system = body.system;
 
     const reader = await openStream(
-      `${vbaseOf(target)}/messages`,
+      messagesUrl(target),
       targetHeaders(target),
       payload,
       signal,
@@ -684,7 +700,7 @@ export class GatewayClient {
       if (body.system) payload.system = body.system;
 
       const reader = await openStream(
-        `${vbaseOf(target)}/messages`,
+        messagesUrl(target),
         targetHeaders(target),
         payload,
         signal,
@@ -1191,7 +1207,11 @@ export class GatewayClient {
 
 /** Endpoint without trailing slashes. */
 function baseOf(target: ProviderTarget): string {
-  return target.endpoint.replace(/\/+$/, "");
+  return target.endpoint
+    .replace(/\/+$/, "")
+    // People commonly copy the full endpoint shown by Foundry rather than
+    // its API base. Normalize those leaf routes before appending our route.
+    .replace(/\/(?:responses|chat\/completions|messages|models)$/i, "");
 }
 
 /** "claude-sonnet-4.6" → "Claude Sonnet 4.6" — readable picker labels for the
@@ -1259,6 +1279,101 @@ function isEffortVariant(id: string): boolean {
   return /-(low|medium|high|xhigh|max)$/i.test(id);
 }
 
+/** Foundry advertises version ids even though /responses expects the alias. */
+function canonicalModelId(id: string): string {
+  return id
+    .replace(/[-_]\d{4}[-_]\d{2}[-_]\d{2}(?=$|[-_])/i, "")
+    .replace(/[-_]\d{8}(?=$|[-_])/i, "");
+}
+
+function isMicrosoftFoundryEndpoint(endpoint: string): boolean {
+  try {
+    const host = new URL(endpoint).hostname.toLowerCase();
+    return (
+      host.endsWith(".services.ai.azure.com") ||
+      host.endsWith(".openai.azure.com") ||
+      host.endsWith(".models.ai.azure.com")
+    );
+  } catch {
+    return false;
+  }
+}
+
+const MODEL_COLLATOR = new Intl.Collator("en", {
+  numeric: true,
+  sensitivity: "base",
+});
+
+function modelSortBucket(id: string): number {
+  const s = id.toLowerCase();
+  if (/claude|anthropic|opus|sonnet|haiku|fable/.test(s)) return 0;
+  if (/^gpt-|^o\d|openai|codex|davinci/.test(s)) return 1;
+  if (/grok|xai/.test(s)) return 2;
+  if (/deepseek/.test(s)) return 3;
+  if (/gemini|google|palm/.test(s)) return 4;
+  if (/kimi|moonshot/.test(s)) return 5;
+  if (/mistral|mixtral|ministral/.test(s)) return 6;
+  if (/llama|meta/.test(s)) return 7;
+  if (/phi|mai-|microsoft/.test(s)) return 8;
+  if (/qwen/.test(s)) return 9;
+  if (/cohere|command-r/.test(s)) return 10;
+  return 20;
+}
+
+function modelTier(id: string): number {
+  const s = id.toLowerCase();
+  if (/fable|opus|speciale|pro|max|ultra|large|maverick/.test(s)) return 0;
+  if (/sonnet|reasoning|thinking|medium/.test(s)) return 1;
+  if (/flash|mini|small|scout|lite/.test(s)) return 3;
+  if (/nano|haiku/.test(s)) return 4;
+  return 2;
+}
+
+function modelFamilyRank(id: string): number {
+  const s = id.toLowerCase();
+  if (/^gpt-\d/.test(s)) return 0;
+  if (/^o\d/.test(s)) return 1;
+  if (/codex/.test(s)) return 2;
+  if (/^gpt-(chat|realtime|audio|image)/.test(s)) return 3;
+  if (/^gpt-oss/.test(s)) return 4;
+  return 0;
+}
+
+function modelVersion(id: string): number {
+  const s = id.toLowerCase();
+  const match =
+    s.match(/(?:gpt|claude-(?:fable|opus|sonnet|haiku)|grok|deepseek-v|gemini|kimi-k|mistral)[-_]?(\d+)(?:[.-](\d+))?/) ??
+    s.match(/^o(\d+)(?:[.-](\d+))?/);
+  if (!match) return 0;
+  return Number(match[1]) + Number(match[2] ?? 0) / 100;
+}
+
+function compareModels(a: ModelInfo, b: ModelInfo): number {
+  const bucket = modelSortBucket(a.id) - modelSortBucket(b.id);
+  if (bucket) return bucket;
+  const family = modelFamilyRank(a.id) - modelFamilyRank(b.id);
+  if (family) return family;
+  const versionNumber = modelVersion(b.id) - modelVersion(a.id);
+  if (versionNumber) return versionNumber;
+  const tier = modelTier(a.id) - modelTier(b.id);
+  if (tier) return tier;
+  const version = MODEL_COLLATOR.compare(b.id, a.id);
+  if (version) return version;
+  return 0;
+}
+
+function dedupeAndSortModels(models: ModelInfo[]): ModelInfo[] {
+  const unique = new Map<string, ModelInfo>();
+  for (const model of models) {
+    const key = model.id.toLowerCase();
+    const current = unique.get(key);
+    if (!current || model.label.length < current.label.length) {
+      unique.set(key, model);
+    }
+  }
+  return [...unique.values()].sort(compareModels);
+}
+
 /** Sonnet-equivalent cost multiplier per model family — mirrors the gateway's
  *  quota weights (Sonnet money basis: sonnet 1.0 / opus 1.67 / fable 3.33). */
 function sonnetEqOf(id: string): number {
@@ -1274,6 +1389,61 @@ function sonnetEqOf(id: string): number {
 function vbaseOf(target: ProviderTarget): string {
   const base = baseOf(target);
   return /\/v1$/i.test(base) ? base : `${base}/v1`;
+}
+
+/**
+ * Anthropic Messages URL with Azure Foundry normalization.
+ *
+ * Users copy endpoints at every level: resource root, /openai/v1,
+ * /anthropic, /anthropic/v1, or the full /v1/messages URI. Claude on Foundry
+ * always lives on the services.ai hostname at /anthropic/v1/messages, while
+ * OpenAI-compatible models remain on /openai/v1. Route by wire format so one
+ * provider can serve both catalogues.
+ */
+function messagesUrl(target: ProviderTarget): string {
+  if (!isMicrosoftFoundryEndpoint(target.endpoint)) {
+    return `${vbaseOf(target)}/messages`;
+  }
+  try {
+    const url = new URL(target.endpoint);
+    url.hostname = url.hostname.replace(
+      /\.openai\.azure\.com$/i,
+      ".services.ai.azure.com",
+    );
+    url.pathname = "/anthropic/v1/messages";
+    url.search = "";
+    url.hash = "";
+    return url.toString();
+  } catch {
+    return `${vbaseOf(target)}/messages`;
+  }
+}
+
+/** Azure catalogue URL, independent of whichever inference leaf was pasted. */
+function foundryModelsUrl(target: ProviderTarget): string {
+  try {
+    const url = new URL(target.endpoint);
+    url.pathname = "/openai/v1/models";
+    url.search = "";
+    url.hash = "";
+    return url.toString();
+  } catch {
+    return `${vbaseOf(target)}/models`;
+  }
+}
+
+/** Known catalogue-only Claude ids that are not callable deployments. */
+function isBogusFoundryClaudeId(id: string): boolean {
+  const s = canonicalModelId(id).toLowerCase();
+  return (
+    /claude-fable/.test(s) ||
+    new Set([
+      "claude-sonnet-5",
+      "claude-sonnet-5-2",
+      "claude-opus-4-8-2",
+      "claude-haiku-4-5-2",
+    ]).has(s)
+  );
 }
 
 /** Auth headers per format. Anthropic's own API wants x-api-key + a version

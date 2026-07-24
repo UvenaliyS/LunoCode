@@ -53,6 +53,7 @@ function clampEffort(m: ModelInfo, eff: string): string {
  * global setting, clamped to whatever the chosen model supports.
  */
 export function ModelPicker({ models, selected, conn, onSelect, providers, bare, openUp }: Props) {
+  models = models.filter((m) => !m.hidden);
   const [open, setOpen] = useState(false);
   const [effort, setEffort] = useState("High");
   const [effortOpen, setEffortOpen] = useState(false);

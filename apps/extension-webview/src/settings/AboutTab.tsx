@@ -3,8 +3,9 @@ import { ArrowsCounterClockwise, Info, LinkSimple } from "@phosphor-icons/react"
 import { post } from "../vscodeApi";
 import { useT } from "./i18n";
 import { SettingsCard } from "./primitives";
+import type { WebviewState } from "../contracts";
 
-export function AboutTab() {
+export function AboutTab({ state }: { state: WebviewState }) {
   const t = useT();
   const [reloading, setReloading] = useState(false);
 
@@ -24,11 +25,11 @@ export function AboutTab() {
       <SettingsCard icon={<Info size={15} />} title="Luno Code">
         <div className="s2-kv">
           <span className="s2-kv-key">{t.about.version}</span>
-          <span className="s2-kv-val">0.0.1</span>
+          <span className="s2-kv-val">{state.extensionVersion ?? "—"}</span>
         </div>
         <div className="s2-kv">
           <span className="s2-kv-key">{t.about.license}</span>
-          <span className="s2-kv-val">Apache-2.0</span>
+          <span className="s2-kv-val">MIT</span>
         </div>
         <div className="group-card-row">
           <button
@@ -52,18 +53,18 @@ export function AboutTab() {
         <div className="s2-kv">
           <span className="s2-kv-key">{t.about.repo}</span>
           <a
-            href="https://github.com/UvenaliyS/LunoCodeStudio"
+            href="https://github.com/UvenaliyS/LunoCode"
             target="_blank"
             rel="noreferrer"
           >
-            github.com/UvenaliyS/LunoCodeStudio
+            github.com/UvenaliyS/LunoCode
           </a>
         </div>
       </SettingsCard>
 
       <div className="settings-footer-banner">
         <p>Luno Code — Open-source AI Coding for VS Code</p>
-        <span>{t.about.license}</span>
+        <span>MIT</span>
       </div>
     </div>
   );

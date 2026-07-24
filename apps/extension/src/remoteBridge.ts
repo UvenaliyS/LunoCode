@@ -61,6 +61,8 @@ export class RemoteBridge implements RemoteBridgeLike {
   private pairingTimer?: NodeJS.Timeout;
   /** Shown once per hard auth failure so reconnect loops don't spam. */
   private warnedBadKey = false;
+  /** Prevent parallel recovery attempts if a relay repeats helloErr. */
+  private recoveringIdentity = false;
   /** Timestamp of the last frame/ping/pong from the relay (liveness). */
   private lastActivityAt = 0;
   private pingTimer?: NodeJS.Timeout;
@@ -393,14 +395,7 @@ export class RemoteBridge implements RemoteBridgeLike {
           // is stale (e.g. it was reset) — tell the user how to recover but
           // KEEP retrying with backoff (never dead-end), since a relay restart
           // that clears its registry will accept us again on the next attempt.
-          if (!this.warnedBadKey) {
-            this.warnedBadKey = true;
-            void vscode.window.showWarningMessage(
-              "Luno Remote: the relay rejected this extension's identity. " +
-                "If phones can't connect, disable and re-enable Remote to re-register.",
-            );
-          }
-          this.broadcastStatus();
+          void this.recoverRejectedIdentity();
         }
         break;
 
@@ -542,6 +537,36 @@ export class RemoteBridge implements RemoteBridgeLike {
     // already dead here (unknown ids are rejected in onRemoteMessage).
     this.sendFrame({ v: 1, kind: "deviceRevoke", deviceId });
     this.broadcastStatus();
+  }
+
+  /**
+   * Repair a stale relay TOFU identity. A badKey response is permanent for the
+   * current id/key pair, so ordinary reconnects cannot help. Phone tokens are
+   * bound to that rejected identity and must be paired again after rotation.
+   */
+  private async recoverRejectedIdentity(): Promise<void> {
+    if (this.recoveringIdentity) return;
+    this.recoveringIdentity = true;
+    try {
+      await this.context.globalState.update(EXT_ID_KEY, crypto.randomUUID());
+      await this.context.globalState.update(
+        EXT_SECRET_KEY,
+        crypto.randomBytes(32).toString("hex"),
+      );
+      await this.saveDevices([]);
+      this.teardownSocket(true);
+      this.backoffMs = BACKOFF_MIN_MS;
+      if (!this.warnedBadKey) {
+        this.warnedBadKey = true;
+        void vscode.window.showWarningMessage(
+          "Luno Remote repaired a rejected relay identity. Pair your phone again.",
+        );
+      }
+      this.broadcastStatus();
+      if (this.running) void this.connect();
+    } finally {
+      this.recoveringIdentity = false;
+    }
   }
 
   private broadcastStatus(): void {

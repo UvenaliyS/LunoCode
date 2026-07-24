@@ -1,4 +1,6 @@
 # Source & build config — only dist/ ships
+../**
+../../**
 src/**
 esbuild.mjs
 tsconfig.json

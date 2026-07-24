@@ -135,7 +135,7 @@ export function SettingsApp() {
           {tab === "notifications" && <NotificationsTab state={state} />}
           {tab === "account" && <AccountTab state={state} />}
           {tab === "language" && <LanguageTab state={state} resolved={lang} />}
-          {tab === "about" && <AboutTab />}
+          {tab === "about" && <AboutTab state={state} />}
         </div>
       </SettingsShell>
     </I18nProvider>

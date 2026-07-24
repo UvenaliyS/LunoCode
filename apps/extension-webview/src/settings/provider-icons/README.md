@@ -9,6 +9,7 @@ ProvidersTab.tsx), без правок кода. Имя файла = id глиф
 | `anthropic.svg`  | Anthropic / Claude   |
 | `openai.svg`     | OpenAI               |
 | `google.svg`     | Google / Gemini      |
+| `azure.svg`      | Azure AI / Foundry   |
 | `xai.svg`        | xAI / Grok           |
 | `openrouter.svg` | OpenRouter           |
 | `groq.svg`       | Groq                 |

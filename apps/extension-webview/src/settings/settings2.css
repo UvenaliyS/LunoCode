@@ -1431,6 +1431,36 @@
   flex-direction: column;
   gap: 18px;
 }
+.s2-model-add {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(150px, 1.25fr) auto;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.s2-model-add input {
+  min-width: 0;
+  padding: 8px 10px;
+  color: #fafafa;
+  background: #09090b;
+  border: 1px solid #27272a;
+  outline: none;
+}
+.s2-model-add input:focus { border-color: #dc2626; }
+.s2-model-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+  color: #a1a1aa;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+.s2-model-icon-btn:hover { color: #fff; }
+.s2-model-icon-btn.danger:hover { color: #ef4444; }
+@media (max-width: 620px) {
+  .s2-model-add { grid-template-columns: 1fr; }
+}
 .s2-models-group {
   display: flex;
   flex-direction: column;

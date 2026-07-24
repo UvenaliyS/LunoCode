@@ -68,6 +68,8 @@ export interface ModelInfo {
   brand?: ModelBrand;
   /** Effective wire format this model is called with (after auto/override). */
   format?: ProviderFormat;
+  /** Hidden from model pickers but retained in Settings so it can be enabled. */
+  hidden?: boolean;
 }
 
 /** Infer the brand from a model id/label. Single source of truth. */
@@ -682,6 +684,16 @@ export interface LunoSettings {
   remote: RemoteSettings;
   /** UI language — "auto" follows the VS Code display language. */
   language: "auto" | "en" | "ru";
+  /** Models hidden from chat/default-model pickers, keyed as provider/id. */
+  hiddenModels: string[];
+  /** User-defined model entries appended to provider catalogues. */
+  customModels: CustomModel[];
+}
+
+export interface CustomModel {
+  id: string;
+  label: string;
+  providerId?: string;
 }
 
 /** How the user is linking their account. */

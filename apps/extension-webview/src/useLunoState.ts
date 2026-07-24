@@ -38,6 +38,8 @@ const EMPTY: WebviewState = {
     display: DEFAULT_DISPLAY,
     remote: DEFAULT_REMOTE,
     language: "en",
+    hiddenModels: [],
+    customModels: [],
   },
 };
 

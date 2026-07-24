@@ -54,6 +54,7 @@ export interface ModelInfo {
   brand?: ModelBrand;
   /** Effective wire format this model is called with (after auto/override). */
   format?: ProviderFormat;
+  hidden?: boolean;
 }
 
 /** Infer the brand from a model id/label. Mirror of the shared helper. */
@@ -393,6 +394,14 @@ export interface LunoSettings {
   remote: RemoteSettings;
   /** UI language — "auto" follows the VS Code display language. */
   language: "auto" | "en" | "ru";
+  hiddenModels: string[];
+  customModels: CustomModel[];
+}
+
+export interface CustomModel {
+  id: string;
+  label: string;
+  providerId?: string;
 }
 
 // --- Remote control (Telegram WebApp) — mirrors @luno/shared -----------------
@@ -473,6 +482,8 @@ export interface WebviewState {
   nonLogging: boolean;
   conn: ConnState;
   settings: LunoSettings;
+  /** Version reported by the installed extension manifest. */
+  extensionVersion?: string;
   /** Telegram username when linked. */
   account?: string;
   /** Full signed-in profile (name/email/avatar/plan) from the cabinet. */

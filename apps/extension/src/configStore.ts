@@ -58,6 +58,8 @@ const DEFAULT_CONFIG: LunoConfig = {
     display: { ...DEFAULT_DISPLAY },
     remote: { ...DEFAULT_REMOTE },
     language: "auto",
+    hiddenModels: [],
+    customModels: [],
   },
   providers: [],
   ssh: [],
@@ -407,7 +409,24 @@ function mergeSettings(
   if (remote.serverUrl === "wss://webapp.luno.codes") {
     remote.serverUrl = DEFAULT_REMOTE.serverUrl;
   }
-  const merged = { ...base, ...patch, notifications, autoApprove, context, display, remote };
+  const merged = {
+    ...base,
+    ...patch,
+    notifications,
+    autoApprove,
+    context,
+    display,
+    remote,
+    hiddenModels: Array.isArray(patch.hiddenModels)
+      ? patch.hiddenModels.filter((v): v is string => typeof v === "string")
+      : base.hiddenModels,
+    customModels: Array.isArray(patch.customModels)
+      ? patch.customModels.filter(
+          (v): v is LunoSettings["customModels"][number] =>
+            isObject(v) && typeof v.id === "string" && typeof v.label === "string",
+        )
+      : base.customModels,
+  };
   // Migrate dev-era defaults: the mock gateway on localhost and the dashed
   // model id it advertised. Only exact old defaults are rewritten — a user's
   // own custom gateway/model choice is never touched.

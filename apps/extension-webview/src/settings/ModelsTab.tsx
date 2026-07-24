@@ -1,4 +1,5 @@
-import { Cpu, Stack } from "@phosphor-icons/react";
+import { useState } from "react";
+import { Cpu, Eye, EyeSlash, Plus, Stack, Trash } from "@phosphor-icons/react";
 import { post } from "../vscodeApi";
 import type {
   ModelBrand,
@@ -8,6 +9,7 @@ import type {
 } from "../contracts";
 import { inferModelBrand } from "../contracts";
 import { ModelPicker } from "../components/ModelPicker";
+import { modelBrand } from "../components/ModelIcon";
 import { useT } from "./i18n";
 import { Row, SettingsCard, setSetting } from "./primitives";
 import { brandMeta } from "./brandIcons";
@@ -18,6 +20,22 @@ const BRAND_ORDER: ModelBrand[] = ["anthropic", "openai", "google", "xai", "othe
 export function ModelsTab({ state }: { state: WebviewState }) {
   const t = useT();
   const models = state.models;
+  const [customName, setCustomName] = useState("");
+  const [customId, setCustomId] = useState("");
+
+  function addCustomModel() {
+    const label = customName.trim();
+    const id = customId.trim();
+    if (!label || !id) return;
+    setSetting("customModels", [
+      ...(state.settings.customModels ?? []).filter(
+        (model) => !(model.id === id && (model.providerId || "luno") === "luno"),
+      ),
+      { id, label, providerId: "luno" },
+    ]);
+    setCustomName("");
+    setCustomId("");
+  }
 
   // Per-model wire-format overrides live on the owning provider.
   const overrides = new Map<string, ProviderFormat>();
@@ -60,6 +78,29 @@ export function ModelsTab({ state }: { state: WebviewState }) {
         title={t.models.library}
         desc={t.models.libraryDesc}
       >
+        <div className="s2-model-add">
+          <input
+            value={customName}
+            onChange={(event) => setCustomName(event.target.value)}
+            placeholder="Название модели"
+            aria-label="Название модели"
+          />
+          <input
+            value={customId}
+            onChange={(event) => setCustomId(event.target.value)}
+            onKeyDown={(event) => event.key === "Enter" && addCustomModel()}
+            placeholder="ID модели"
+            aria-label="ID модели"
+          />
+          <button
+            className="settings-action-btn"
+            disabled={!customName.trim() || !customId.trim()}
+            onClick={addCustomModel}
+          >
+            <Plus size={13} />
+            Добавить
+          </button>
+        </div>
         {models.length === 0 ? (
           <span className="field-hint-text">{t.models.empty}</span>
         ) : (
@@ -83,6 +124,35 @@ export function ModelsTab({ state }: { state: WebviewState }) {
                             ? overrides.get(`${m.providerId}/${m.id}`)
                             : undefined
                         }
+                        hidden={Boolean(m.hidden)}
+                        custom={state.settings.customModels.some(
+                          (item) =>
+                            item.id === m.id &&
+                            (item.providerId || "luno") === (m.providerId || "luno"),
+                        )}
+                        onToggle={() => {
+                          const key = `${m.providerId || "luno"}/${m.id}`;
+                          const hidden = state.settings.hiddenModels ?? [];
+                          setSetting(
+                            "hiddenModels",
+                            hidden.includes(key)
+                              ? hidden.filter((item) => item !== key)
+                              : [...hidden, key],
+                          );
+                        }}
+                        onDelete={() =>
+                          setSetting(
+                            "customModels",
+                            state.settings.customModels.filter(
+                              (item) =>
+                                !(
+                                  item.id === m.id &&
+                                  (item.providerId || "luno") ===
+                                    (m.providerId || "luno")
+                                ),
+                            ),
+                          )
+                        }
                       />
                     ))}
                   </div>
@@ -100,14 +170,21 @@ function ModelRow({
   model,
   isDefault,
   override,
+  hidden,
+  custom,
+  onToggle,
+  onDelete,
 }: {
   model: ModelInfo;
   isDefault: boolean;
   override?: ProviderFormat;
+  hidden: boolean;
+  custom: boolean;
+  onToggle: () => void;
+  onDelete: () => void;
 }) {
   const t = useT();
-  const brand = model.brand ?? inferModelBrand(`${model.id} ${model.label}`);
-  const { Icon } = brandMeta(brand);
+  const { Icon } = modelBrand(model);
 
   function setFormat(v: string) {
     if (!model.providerId) return;
@@ -132,6 +209,22 @@ function ModelRow({
       </div>
       {isDefault && (
         <span className="s2-model-default">{t.models.defaultBadge}</span>
+      )}
+      <button
+        className="s2-model-icon-btn"
+        title={hidden ? "Показывать в списках моделей" : "Скрыть из списков моделей"}
+        onClick={onToggle}
+      >
+        {hidden ? <EyeSlash size={15} /> : <Eye size={15} />}
+      </button>
+      {custom && (
+        <button
+          className="s2-model-icon-btn danger"
+          title="Удалить пользовательскую модель"
+          onClick={onDelete}
+        >
+          <Trash size={15} />
+        </button>
       )}
       {model.providerId && (
         <select

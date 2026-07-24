@@ -41,6 +41,8 @@ const DEFAULTS: LunoSettings = {
   display: { ...DEFAULT_DISPLAY },
   remote: { ...DEFAULT_REMOTE },
   language: "auto",
+  hiddenModels: [],
+  customModels: [],
 };
 
 export function registerConfigStore(s: ConfigStore): void {

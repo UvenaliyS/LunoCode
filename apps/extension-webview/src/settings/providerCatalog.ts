@@ -8,6 +8,7 @@ export type CatalogGlyph =
   | "anthropic"
   | "openai"
   | "google"
+  | "azure"
   | "xai"
   | "openrouter"
   | "groq"
@@ -56,6 +57,19 @@ export const PROVIDER_CATALOG: CatalogEntry[] = [
     autoFormat: false,
     glyph: "google",
     hosts: ["googleapis.com"],
+  },
+  {
+    id: "azure",
+    name: "Azure AI",
+    endpoint: "https://YOUR-RESOURCE.openai.azure.com/openai/v1",
+    format: "openai-v1",
+    autoFormat: true,
+    glyph: "azure",
+    hosts: [
+      "openai.azure.com",
+      "services.ai.azure.com",
+      "models.ai.azure.com",
+    ],
   },
   {
     id: "xai",
